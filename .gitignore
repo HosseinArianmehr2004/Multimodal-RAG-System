@@ -2,7 +2,9 @@
 /content
 /open_clip_weights
 /.env
-/document
+
+*.docx
 *.json
 *.zip
+
 *__pycache__
