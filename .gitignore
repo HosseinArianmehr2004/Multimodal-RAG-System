@@ -1,0 +1,8 @@
+/.myenv
+/content
+/open_clip_weights
+/.env
+/document
+*.json
+*.zip
+*__pycache__
