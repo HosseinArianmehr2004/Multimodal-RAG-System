@@ -1,7 +1,10 @@
 /.myenv
 /content
+/test_data
 /open_clip_weights
 /.env
+
+/document
 
 *.docx
 *.json

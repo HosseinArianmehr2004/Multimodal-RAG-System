@@ -1,14 +1,18 @@
 📌 === FULL CONTEXT SENT TO LLM ===
 
-### User Audio Queries
-🎧 Audio 1 (Transcription):
-I saw a bear and his child in a jungle.
+### 🧍 User Text Query
+با تمام داده هایی که برات میاد و اردک یک داستان سه خطی بساز
+
+
+
+### User Image Queries
+1 image(s) attached.
 
 
 
 ### Retrieved Texts
 📄 Retrieved Text 1:
-Two bears holding each other outside the surroundings.
+An item inside the picture which appears to be truly astounding.
 
 
 
@@ -19,38 +23,12 @@ Two bears holding each other outside the surroundings.
 
 ### Retrieved Audio Transcriptions
 🔊 Retrieved Audio 1 (Transcription):
-They decided to make a feature together.
+These stories serve as modern cautionary tales to children and parents.
 
 🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹🔹
 
 📌 === LLM RESPONSE ===
 
-Below is a concise, clear description of the multimodal inputs you provided.
-
-## Summary
-- Audio (user): short sentence mentioning seeing a bear and its child in a jungle.
-- Retrieved text: brief caption about two bears holding each other.
-- Retrieved audio transcription: short sentence about deciding to make a feature together.
-- Attached image: photo showing two bears (an adult and a smaller bear/cub) partially hidden behind a large log or rock, with a rocky/stone background.
-
-## Image (attached)
-- Content: Two bears visible—one larger (adult) and one smaller (cub) positioned close together behind a foreground log or ledge.
-- Composition: The bears’ heads and upper bodies are visible above the log/ledge; background appears to be a stone or rock wall (could be a natural rock face or enclosure wall).
-- Colors/lighting: Dark fur on the bears contrasts with the lighter-colored log/rock in the foreground and the textured stone background.
-- Observable behavior: Both animals are looking toward the camera/viewer; no aggressive or injured behavior is apparent from the image alone.
-
-## Audio transcriptions
-- User audio (provided): "I saw a bear and his child in a jungle."
-- Retrieved audio transcription: "They decided to make a feature together."
-
-## Retrieved text
-- "Two bears holding each other outside the surroundings."
-
-## Notable observations / possible inconsistencies
-- The user audio references a "jungle," while the image background looks like a rocky area (possibly an enclosure) rather than dense jungle vegetation.
-- Retrieved audio/text suggest a collaborative or affectionate context ("decided to make a feature together", "holding each other"), whereas the image mainly shows the bears looking out from behind a log.
-
-Would you like any of the following next?
-- Image editing (crop, enhance, stylize) or removal of background?
-- A caption or short story combining the audio/text/image?
-- Further analysis (species identification, behavior notes, or help confirming whether the photo appears to be in the wild or an enclosure)?
+اردکی روی سقف یک اتوبوس زرد مدرسه‌ای ایستاد و زیر پایش یک شیء واقعاً شگفت‌انگیز می‌درخشید.  
+او آن شیء را به اتوبوس شهری برد و برای کودکان و والدین قصه‌ای تعریف کرد که مثل یک عبرت‌آموز مدرن بود.  
+وقتی اتوبوس ایستاد، همه درس گرفتند؛ اردک شیء را کنار آب رها کرد و آرام از کنار خیابان عبور کرد.

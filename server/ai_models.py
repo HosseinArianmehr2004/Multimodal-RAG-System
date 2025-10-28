@@ -1,4 +1,3 @@
-import torch
 import whisper
 import open_clip
 from .config import WHISPER_MODEL, CLIP_MODEL_NAME, PRETRAINED_LOCAL_PATH, DEVICE

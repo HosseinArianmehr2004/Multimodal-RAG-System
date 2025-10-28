@@ -1,26 +1,39 @@
 import os
-import json
-import base64
 import tempfile
+import requests
 import numpy as np
 from PIL import Image
 from typing import List, Tuple
 from fastapi.responses import JSONResponse
 from fastapi import APIRouter, UploadFile, File, Form
-import requests
+from deep_translator import GoogleTranslator
 
-from ..utils import embed_text, embed_image, search_by_embedding
-from ..language_utils import normalize_text_to_english
-from ..ai_models import whisper_model
-from ..config import PROJECT_ROOT_PATH
-from ..llm import feed_data_into_llm
+from .utils import embed_text, embed_image, search_by_embedding
+from .ai_models import whisper_model
+from .config import PROJECT_ROOT_PATH
+from .llm import feed_data_into_llm
+
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
 # --- Helper Functions ---
+def normalize_text_to_english(text: str) -> str:
+    """
+    Convert any input text into English if it is not already English.
+    Works offline for language detection + uses Google Translate API.
+    """
+    if not text or text.strip() == "":
+        return text
+
+    try:
+        translated = GoogleTranslator(source='auto', target='en').translate(text)
+        return translated
+    except Exception as e:
+        print(f"Translation error: {e}")
+        return text
 
 
-def _normalize_results(results_list):
+def normalize_results(results_list):
     """Converts Weaviate result list to a simple list of properties."""
     out = []
     for r in results_list or []:
@@ -30,7 +43,7 @@ def _normalize_results(results_list):
     return out
 
 
-async def _save_temp_file(file: UploadFile) -> str:
+async def save_temp_file(file: UploadFile) -> str:
     """Saves UploadFile to a temp path and returns the path."""
     # Ensure a file extension, default to .tmp if none
     suffix = os.path.splitext(file.filename)[1] or ".tmp"
@@ -39,7 +52,7 @@ async def _save_temp_file(file: UploadFile) -> str:
         return tf.name
 
 
-def _process_audio(temp_path: str) -> Tuple[List[float], dict]:
+def process_audio(temp_path: str) -> Tuple[List[float], dict]:
     """
     Transcribes audio, normalizes text, embeds it,
     and returns (embedding, metadata_dict).
@@ -68,8 +81,6 @@ def _process_audio(temp_path: str) -> Tuple[List[float], dict]:
 
 
 # --- Main Multimodal Endpoint ---
-
-
 @router.post("/multimodal")
 async def search_multimodal(
     query: str = Form(default=""), files: List[UploadFile] = File(default=[])
@@ -99,7 +110,7 @@ async def search_multimodal(
         audio_transcriptions = []
         image_files = []
         for file in files:
-            temp_path = await _save_temp_file(file)
+            temp_path = await save_temp_file(file)
             temp_paths.append(temp_path)
 
             if file.content_type.startswith("image/"):
@@ -113,7 +124,7 @@ async def search_multimodal(
                 image_files.append(img_obj)
 
             elif file.content_type.startswith("audio/"):
-                audio_emb, audio_meta = _process_audio(temp_path)
+                audio_emb, audio_meta = process_audio(temp_path)
                 embeddings.append(audio_emb)
                 audio_transcriptions.append(audio_meta)
 
@@ -143,9 +154,9 @@ async def search_multimodal(
         image_res = search_by_embedding(q_emb, "image", top_k=5)
         audio_res = search_by_embedding(q_emb, "audio", top_k=5)
 
-        normalized_texts = _normalize_results(text_res)
-        normalized_images = _normalize_results(image_res)
-        normalized_audios = _normalize_results(audio_res)
+        normalized_texts = normalize_results(text_res)
+        normalized_images = normalize_results(image_res)
+        normalized_audios = normalize_results(audio_res)
 
         response_data.update(
             {
@@ -155,7 +166,6 @@ async def search_multimodal(
             }
         )
 
-        # --- ✅ 4. Build Debug Dictionary ---
         llm_data = {
             "user_text_query": query if has_text else None,
             "user_image_queries": image_files if image_files else None,
@@ -194,8 +204,6 @@ async def search_multimodal(
                 else None
             ),
         }
-
-        # print(llm_data)
 
         llm_data_modified_for_front = {
             "retrieved_texts": (

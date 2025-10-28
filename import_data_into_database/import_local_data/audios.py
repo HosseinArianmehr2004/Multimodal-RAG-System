@@ -11,10 +11,6 @@ from typing import Union
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-AUDIO_EXTS = (".wav", ".mp3", ".m4a", ".flac", ".aac", ".ogg", ".wma")
-device = "cuda" if torch.cuda.is_available() else "cpu"
-whisper_model = whisper.load_model("small", device=device)
-
 # ============================================
 #   Weaviate Connection
 # ============================================
@@ -32,7 +28,7 @@ except Exception as e:
 # ============================================
 MODEL_NAME = "ViT-B-32"
 PRETRAINED_LOCAL_PATH = (
-    "../../open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
 )
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -44,30 +40,28 @@ clip_model.to(DEVICE).eval()
 
 
 # ============================================
-#   Utility Functions
+#   Whisper Model
 # ============================================
-def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
-    """Convert tensor to 1D numpy array."""
-    return tensor.detach().cpu().numpy().reshape(-1)
+MODEL_TYPE = "small"
+whisper_model = whisper.load_model(MODEL_TYPE, device=DEVICE)
 
 
-def embed_text(text: str) -> np.ndarray:
-    """Return normalized CLIP text embedding."""
-    if not isinstance(text, str):
-        raise ValueError("`text` must be a string.")
-
-    tokens = tokenizer([text]).to(DEVICE)
-    with torch.no_grad():
-        features = clip_model.encode_text(tokens)
-        features = features / features.norm(dim=-1, keepdim=True)
-    return _to_numpy(features)
-
-
+# ============================================
+#   Create Embedding Function
+# ============================================
 def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
     """Wrapper for modality-specific embedding."""
     mod = modality.lower()
     if mod == "text":
-        return embed_text(input_data)
+        """Return normalized CLIP text embedding."""
+        if not isinstance(input_data, str):
+            raise ValueError("`input_data` must be a string.")
+
+        tokens = tokenizer([input_data]).to(DEVICE)
+        with torch.no_grad():
+            features = clip_model.encode_text(tokens)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
     else:
         raise ValueError("`modality` must be 'text'.")
 
@@ -75,9 +69,9 @@ def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
 # ============================================
 #   Data Storage Functions
 # ============================================
-def store_audio_item(item_id: str, transcription_text: str, audio_path: str = ""):
+def store_audio_item(item_id: str, transcription_text: str, audio_name: str = ""):
     """Store audio transcription embedding and metadata in Weaviate."""
-    relative_path = f"/content/audio_dataset/{audio_path}"
+    relative_path = f"/content/audio_dataset/{audio_name}"
     embedding = get_embedding("text", transcription_text)
     properties = {
         "contentId": item_id,
@@ -85,7 +79,6 @@ def store_audio_item(item_id: str, transcription_text: str, audio_path: str = ""
         "filePath": relative_path,
         "content": transcription_text,
     }
-    print(relative_path)
     collection.data.insert(properties=properties, vector=embedding.tolist())
 
 
@@ -100,13 +93,18 @@ def process_audio_json(json_path: str, max_workers: int = 8):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
         for item in metadata:
-            file_path = item.get("filepath", "").strip()
+            file_path = item.get("audio_path", "").strip()
             transcription = item.get("transcription", "").strip()
-            if not (file_path and os.path.exists(file_path) and transcription):
+            if not (file_path and transcription):
                 continue
             content_id = str(item.get("id", os.path.basename(file_path)))
             futures.append(
-                executor.submit(store_audio_item, content_id, transcription, os.path.basename(file_path))
+                executor.submit(
+                    store_audio_item,
+                    content_id,
+                    transcription,
+                    os.path.basename(file_path),
+                )
             )
 
         for _ in tqdm(
@@ -123,20 +121,36 @@ def process_audio_json(json_path: str, max_workers: int = 8):
 def transcribe_to_english(path):
     res = whisper_model.transcribe(path, task="transcribe")
     lang, text = res.get("language", ""), res.get("text", "").strip()
-    return text if lang.startswith("en") else whisper_model.transcribe(path, task="translate", language="en").get("text", "").strip()
+    if lang.startswith("en"):
+        return text
+    else:
+        return (
+            whisper_model.transcribe(path, task="translate", language="en")
+            .get("text", "")
+            .strip()
+        )
+
 
 def transcribe_audios(folder, out_json="results.json"):
-    if not os.path.isdir(folder): raise ValueError(f"No folder: {folder}")
-    files = sorted([os.path.join(folder, f) for f in os.listdir(folder) if f.lower().endswith(AUDIO_EXTS)])
+    if not os.path.isdir(folder):
+        raise ValueError(f"No folder: {folder}")
+
+    files = sorted(
+        [
+            os.path.join(folder, file_path)
+            for file_path in os.listdir(folder)
+            if file_path.lower().endswith((".wav", ".mp3", ".m4a"))
+        ]
+    )
 
     results = [
         {
             "id": i + 1,
-            "filename": os.path.basename(p),
-            "filepath": os.path.abspath(p).replace("\\", "/"),
-            "transcription": transcribe_to_english(p)
+            "filename": os.path.basename(audio_path),
+            "audio_path": audio_path,
+            "transcription": transcribe_to_english(audio_path),
         }
-        for i, p in enumerate(tqdm(files, desc="Processing"))
+        for i, audio_path in enumerate(tqdm(files, desc="Processing"))
     ]
 
     with open(out_json, "w", encoding="utf-8") as f:
@@ -149,10 +163,9 @@ def transcribe_audios(folder, out_json="results.json"):
 #   Main Execution
 # ============================================
 if __name__ == "__main__":
-    audio_folder = "../../content/audio_dataset"
+    audio_folder = "./content/audio_dataset"
     audio_json = f"{audio_folder}/audio_metadata.json"
 
     transcribe_audios(audio_folder, audio_json)
     process_audio_json(audio_json)
     weaviate_client.close()
-

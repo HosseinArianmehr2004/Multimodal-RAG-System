@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from .search_routes import router as search_router
 
-from .routes.search_routes import router as search_router
 
 app = FastAPI(title="Multimodal RAG Chatbot")
 
@@ -35,6 +35,8 @@ async def home():
     else:
         return HTMLResponse("<h1>Frontend not found</h1>", status_code=404)
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -1,3 +1,6 @@
+import os
+import re
+import time
 import torch
 import weaviate
 import open_clip
@@ -5,14 +8,8 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import Union
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import os
-import re
-import pandas as pd
-import time
 from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -35,7 +32,7 @@ except Exception as e:
 # ============================================
 MODEL_NAME = "ViT-B-32"
 PRETRAINED_LOCAL_PATH = (
-    "../../open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
 )
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -45,9 +42,10 @@ clip_model, _, preprocess = open_clip.create_model_and_transforms(
 tokenizer = open_clip.get_tokenizer(MODEL_NAME)
 clip_model.to(DEVICE).eval()
 
-parser = StrOutputParser()
 
-# ---------- Environment setup ----------
+# ============================================
+#   Environment setup
+# ============================================
 load_dotenv()
 API_KEY = os.getenv("LLM_API_KEY")
 if not API_KEY:
@@ -55,7 +53,10 @@ if not API_KEY:
         "Please set your API key in the environment variable OPENROUTER_API_KEY."
     )
 
-# ---------- Initialize model ----------
+
+# ============================================
+#   Initialize LLM model
+# ============================================
 LLM_model = ChatOpenAI(
     model="openai/gpt-oss-20b:free",
     temperature=0.1,
@@ -74,15 +75,75 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
+parser = StrOutputParser()
 vision_chain = prompt | LLM_model | parser
 
 
-# ---------- Translate a single text ----------
+# ============================================
+#   Create embedding and store in DB
+# ============================================
+def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
+    """Wrapper for modality-specific embedding."""
+    mod = modality.lower()
+    if mod == "text":
+        """Return normalized CLIP text embedding."""
+        if not isinstance(input_data, str):
+            raise ValueError("`input_data` must be a string.")
+
+        tokens = tokenizer([input_data]).to(DEVICE)
+        with torch.no_grad():
+            features = clip_model.encode_text(tokens)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
+    else:
+        raise ValueError("`modality` must be 'text'.")
+
+
+def store_text_item(item_id: str, text_data: str):
+    """Store text embedding and metadata in Weaviate."""
+    embedding = get_embedding("text", text_data)
+    properties = {
+        "contentId": item_id,
+        "modality": "text",
+        "filePath": "",
+        "content": text_data,
+    }
+    collection.data.insert(properties=properties, vector=embedding.tolist())
+
+
+def process_texts(input_csv: str, max_workers: int = 8):
+    """Process and store text embeddings in parallel."""
+    df = pd.read_csv(input_csv)
+    texts = df["text"].astype(str).tolist()
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(store_text_item, f"text_{i+1}", text)
+            for i, text in enumerate(texts)
+        ]
+        for _ in tqdm(
+            as_completed(futures), total=len(futures), desc="📝 Processing texts"
+        ):
+            pass
+
+    print(f"✅ Processed {len(texts)} text items.")
+
+
+# ============================================
+#   Translate
+# ============================================
+def is_persian(text: str) -> bool:
+    """Return True if the text contains at least one Persian character."""
+    if not text or not isinstance(text, str):
+        return False
+    return bool(re.search(r"[\u0600-\u06FF]", text))
+
+
 def translate_text(text: str, retries=2, pause=1.0) -> str:
-    """Translate Persian text to English without using HumanMessage"""
+    # ---------- Translate a single text ----------
     if not isinstance(text, str) or not text.strip():
         return ""
-    
+
     prompt_input = {"text": text}
 
     attempt = 0
@@ -98,7 +159,6 @@ def translate_text(text: str, retries=2, pause=1.0) -> str:
             time.sleep(pause * attempt)
 
 
-# ---------- Main function for translating a CSV ----------
 def translate_csv(input_csv: str, text_column="text", workers=4):
     """
     Takes a CSV file, translates the specified text column,
@@ -147,82 +207,6 @@ def translate_csv(input_csv: str, text_column="text", workers=4):
     df.to_csv(output_csv, index=False, encoding="utf-8-sig")
     print(f"✅ Translation complete. Saved to {output_csv}")
     return output_csv
-
-
-# ============================================
-#   Utility Functions
-# ============================================
-def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
-    """Convert tensor to 1D numpy array."""
-    return tensor.detach().cpu().numpy().reshape(-1)
-
-
-def embed_text(text: str) -> np.ndarray:
-    """Return normalized CLIP text embedding."""
-    if not isinstance(text, str):
-        raise ValueError("`text` must be a string.")
-
-    tokens = tokenizer([text]).to(DEVICE)
-    with torch.no_grad():
-        features = clip_model.encode_text(tokens)
-        features = features / features.norm(dim=-1, keepdim=True)
-    return _to_numpy(features)
-
-
-def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
-    """Wrapper for modality-specific embedding."""
-    mod = modality.lower()
-    if mod == "text":
-        return embed_text(input_data)
-    else:
-        raise ValueError("`modality` must be 'text'.")
-
-
-# ============================================
-#   Data Storage Functions
-# ============================================
-def store_text_item(item_id: str, text_data: str):
-    """Store text embedding and metadata in Weaviate."""
-    embedding = get_embedding("text", text_data)
-    properties = {
-        "contentId": item_id,
-        "modality": "text",
-        "filePath": "",
-        "content": text_data,
-    }
-    collection.data.insert(properties=properties, vector=embedding.tolist())
-
-
-# ============================================
-#   Batch Processing Functions
-# ============================================
-def process_texts(input_csv: str, max_workers: int = 8):
-    """Process and store text embeddings in parallel."""
-    df = pd.read_csv(input_csv)
-    texts = df["text"].astype(str).tolist()
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [
-            executor.submit(store_text_item, f"text_{i+1}", text)
-            for i, text in enumerate(texts)
-        ]
-        for _ in tqdm(
-            as_completed(futures), total=len(futures), desc="📝 Processing texts"
-        ):
-            pass
-
-    print(f"✅ Processed {len(texts)} text items.")
-
-
-# ---------- تابع کمکی برای تشخیص متن فارسی ----------
-def is_persian(text: str) -> bool:
-    """Return True if the text contains at least one Persian character."""
-    if not text or not isinstance(text, str):
-        return False
-    return bool(re.search(r"[\u0600-\u06FF]", text))
-
-
-# ---------- تابع اصلی برای آماده‌سازی فایل نهایی ----------
 
 
 def prepare_final_csv(
@@ -295,7 +279,7 @@ def prepare_final_csv(
 # ============================================
 if __name__ == "__main__":
     # Step 1: Input file (contains Persian + English)
-    input_csv = "../../content/text_dataset/text_data.csv"
+    input_csv = "./content/text_dataset/text_data.csv"
 
     # Step 2: Prepare final English-only CSV
     final_csv = prepare_final_csv(input_csv, text_column="text", workers=2)

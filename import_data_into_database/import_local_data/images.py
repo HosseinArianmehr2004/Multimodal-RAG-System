@@ -26,7 +26,7 @@ except Exception as e:
 # ============================================
 MODEL_NAME = "ViT-B-32"
 PRETRAINED_LOCAL_PATH = (
-    "../../open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
 )
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -38,32 +38,23 @@ clip_model.to(DEVICE).eval()
 
 
 # ============================================
-#   Utility Functions
+#   Create Embedding Function
 # ============================================
-def _to_numpy(tensor: torch.Tensor) -> np.ndarray:
-    """Convert tensor to 1D numpy array."""
-    return tensor.detach().cpu().numpy().reshape(-1)
-
-
-def embed_image(image_path: str) -> np.ndarray:
-    """Return normalized CLIP image embedding."""
-    if not isinstance(image_path, str):
-        raise ValueError("`image_path` must be a string.")
-
-    img = Image.open(image_path).convert("RGB")
-    x = preprocess(img).unsqueeze(0).to(DEVICE)
-
-    with torch.no_grad():
-        features = clip_model.encode_image(x)
-        features = features / features.norm(dim=-1, keepdim=True)
-    return _to_numpy(features)
-
-
-def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
-    """Wrapper for modality-specific embedding."""
+def get_embedding(modality: str, image_name: Union[str, None]) -> np.ndarray:
     mod = modality.lower()
     if mod == "image":
-        return embed_image(input_data)
+        """Return normalized CLIP image embedding."""
+        if not isinstance(image_name, str):
+            raise ValueError("`image_name` must be a string.")
+
+        img_path = f"./content/image_dataset/{image_name}"
+        img = Image.open(img_path).convert("RGB")
+        x = preprocess(img).unsqueeze(0).to(DEVICE)
+
+        with torch.no_grad():
+            features = clip_model.encode_image(x)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
     else:
         raise ValueError("`modality` must be 'image'.")
 
@@ -71,11 +62,10 @@ def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
 # ============================================
 #   Data Storage Functions
 # ============================================
-def store_image_item(item_id: str, image_path: str):
+def store_image_item(item_id: str, img_name: str):
     """Store image embedding and metadata in Weaviate."""
-    abs_path = os.path.abspath(image_path).replace("\\", "/")
-    relative_path = f"/content/image_dataset/{image_path}"
-    embedding = get_embedding("image", abs_path)
+    embedding = get_embedding("image", img_name)
+    relative_path = f"/content/image_dataset/{img_name}"
     properties = {
         "contentId": item_id,
         "modality": "image",
@@ -90,31 +80,31 @@ def store_image_item(item_id: str, image_path: str):
 # ============================================
 def process_images(image_folder: str, max_workers: int = 8):
     """Process and store image embeddings in parallel."""
-    image_files = [
-        os.path.join(image_folder, f)
-        for f in os.listdir(image_folder)
-        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    images = [
+        file_path
+        for file_path in os.listdir(image_folder)
+        if file_path.lower().endswith((".jpg", ".jpeg", ".png"))
     ]
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [
             executor.submit(
-                store_image_item, os.path.splitext(os.path.basename(f))[0], f
+                store_image_item, os.path.splitext(os.path.basename(img_name))[0], img_name
             )
-            for f in image_files
+            for img_name in images
         ]
         for _ in tqdm(
             as_completed(futures), total=len(futures), desc="📸 Processing images"
         ):
             pass
 
-    print(f"✅ Processed {len(image_files)} images.")
+    print(f"✅ Processed {len(images)} images.")
 
 
 # ============================================
 #   Main Execution
 # ============================================
 if __name__ == "__main__":
-    image_folder = "../../content/image_dataset"
+    image_folder = "./content/image_dataset"
     process_images(image_folder)
     weaviate_client.close()

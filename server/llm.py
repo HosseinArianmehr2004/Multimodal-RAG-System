@@ -1,4 +1,3 @@
-import json
 import io
 import os
 import base64
@@ -10,7 +9,7 @@ from .config import LLM_MODEL_NAME, LLM_API_BASE, LLM_API_KEY, PROJECT_ROOT_PATH
 
 # === Initialize OpenAI Client ===
 client = OpenAI(
-    base_url=LLM_API_BASE,  # "https://openrouter.ai/api/v1"
+    base_url=LLM_API_BASE,
     api_key=LLM_API_KEY
 )
 
@@ -107,14 +106,12 @@ def feed_data_into_llm(llm_data: dict) -> str:
 
     # --- Retrieved Images ---
     retrieved_image_base64s = []
-    print("🖼️ Retrieved images count:", len(llm_data.get("retrieved_images", [])))
     if llm_data.get("retrieved_images"):
         for img in llm_data["retrieved_images"]:
             pil_img = to_pil_image(img)
             if pil_img:
                 pil_img = pil_img.resize((128, 128), Image.LANCZOS)
                 retrieved_image_base64s.append(image_to_base64_data_url(pil_img))
-                print("✅ Retrieved image converted successfully")
 
         sections.append(section("Retrieved Images", f"{len(retrieved_image_base64s)} image(s) attached." if retrieved_image_base64s else "<no usable retrieved images>"))
 
