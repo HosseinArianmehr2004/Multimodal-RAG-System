@@ -1,0 +1,3842 @@
+\documentclass{article}
+\usepackage[a4paper, left=3cm, right=3cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{multicol} % <-- پکیج اضافه شده برای لیست‌های چند ستونی
+\usepackage{hyperref}
+\usepackage[table,xcdraw]{xcolor}
+
+\usepackage{xcolor}
+\usepackage{listings}
+
+
+
+% یک استایل واحد برای تمام کدها
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    backgroundcolor=\color{gray!5},
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    tabsize=4,
+    captionpos=b,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    extendedchars=true,
+    inputencoding=utf8,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{red},
+    keepspaces=true
+}
+
+
+\usepackage{xepersian}
+\settextfont{XB Niloofar}
+\setlatintextfont{Times New Roman}
+
+% *****************************************************************
+
+
+\begin{document}
+
+\title{پروژه کارشناسی: \\
+\begin{LTR}
+Multimodal RAG
+\end{LTR}}
+
+\author{
+نام دانشجو: حسین آریان‌مهر\\
+شماره دانشجویی: 4011262167\\
+استاد: دکتر هادی صدوقی یزدی
+}
+
+\date{}
+\maketitle
+
+
+% ***********************************************************************
+
+
+\newpage
+\section{فهرست}
+
+% استفاده از فهرست خودکار به جای لیست دستی
+\tableofcontents
+\newpage
+
+
+% ***********************************************************
+
+
+\section{نحوه \lr{setup} پروژه و اجرای کد}
+
+\subsection{۱ – نصب داکر}
+فایل نصبی داکر را از وب‌سایت رسمی آن دانلود و نصب کنید.\\
+لینک سایت:
+\begin{center}
+\lr{\url{https://www.docker.com/products/docker-desktop/}}
+\end{center}
+پس از نصب، سیستم را ری‌استارت کنید.
+
+\subsection{۲ – سورس‌کد پروژه}
+لینک پروژه در گیت:
+\begin{center}
+\lr{\url{https://github.com/HosseinArianmehr2004/Multimodal-RAG-System}}
+‫\end{center}
+
+برای دسترسی به سورس‌کد پروژه می‌توانید از هر یک از دو راه زیر استفاده کنید:
+
+\textbf{A – استفاده از fork:}  
+به آدرس داده شده در بالا بروید و در قسمت بالا سمت چپ صفحه روی فلش کنار عنوان \lr{fork} کلیک کنید و گزینه‌ی \lr{create a new fork} را انتخاب کرده و مراحل را پیش ببرید.
+
+\textbf{B – استفاده از clone:}  
+با استفاده از دستور زیر، سورس‌کد پروژه را در سیستم لوکال خود کلون کنید:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+git clone project_link path
+\end{lstlisting}
+\end{latin}
+
+\subsection{۳ – نصب محیط مجازی و کتابخانه‌های موردنیاز}
+در پوشه‌ی پروژه (\lr{PROJECT\_ROOT}) با دستورات زیر یک محیط مجازی ایجاد کنید.  
+یک \lr{CMD} باز کنید و به مسیر \lr{root} پروژه بروید.  
+سپس دستورات زیر را اجرا کنید:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+python -m venv environment_name
+environment_name\Scripts\activate
+\end{lstlisting}
+\end{latin}
+
+پس از اکتیو شدن محیط مجازی با دستور زیر تمام کتابخانه‌های موردنیاز را نصب کنید:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+pip install -r requirements.txt
+\end{lstlisting}
+\end{latin}
+
+به دلیل تعداد زیاد کتابخانه‌ها و همچنین وجود کتابخانه‌های پرحجمی مانند \lr{pytorch} در بین آن‌ها، زمان نصب ممکن است کمی طول بکشد.
+
+\subsection{۴ – ساخت دیتابیس \lr{Weaviate}}
+در ابتدا نرم‌افزار \lr{Docker} را در ویندوز اجرا کنید.  
+سپس یک \lr{CMD} باز کرده و به مسیر \lr{root} پروژه بروید.  
+برای فعال‌سازی سرویس \lr{Weaviate} در داکر، دستور زیر را اجرا کنید:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+docker-compose up -d
+\end{lstlisting}
+\end{latin}
+
+این دستور فایل \lr{docker-compose.yml} را اجرا کرده و سرویس \lr{Weaviate} را روی داکر راه‌اندازی می‌کند.
+
+\subsubsection{توضیح فایل \lr{docker-compose.yml}}
+فایل \lr{docker-compose.yml} وظیفه دارد نحوه‌ی استقرار و اجرای سرویس‌های مختلف پروژه را در محیط \lr{Docker} مشخص کند.  
+در این پروژه، تنها یک سرویس با نام \lr{Weaviate} تعریف شده است.  
+محتوای این فایل به شرح زیر است:
+\begin{latin}
+\begin{lstlisting}
+version: '3.4'
+services:
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    restart: always
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: "./data"
+      DISABLE_MODULES: 'all'
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیحات بخش‌های مختلف:}
+\begin{itemize}
+    \item \textbf{version}: نسخه‌ی نگارش فایل \lr{docker-compose} را مشخص می‌کند. در نسخه‌های جدید \lr{Docker} این گزینه اختیاری است و می‌توان آن را حذف کرد.
+    \item \textbf{services}: لیست سرویس‌هایی است که باید توسط \lr{Docker} اجرا شوند. در اینجا تنها سرویس \lr{weaviate} تعریف شده است.
+    \item \textbf{weaviate}: نام سرویس مربوط به پایگاه‌داده‌ی برداری (\lr{Weaviate}) است.
+    \item \textbf{image}: مشخص می‌کند که سرویس از تصویر (\lr{Image}) رسمی \lr{Weaviate} با آخرین نسخه (\lr{latest}) استفاده می‌کند. این تصویر از مخزن \lr{Docker Hub} دریافت می‌شود.
+    \item \textbf{restart}: با مقدار \lr{always} تعیین می‌شود که در صورت توقف یا بروز خطا، کانتینر به‌صورت خودکار مجدداً راه‌اندازی شود.
+    \item \textbf{ports}: نگاشت پورت‌های داخلی کانتینر به پورت‌های میزبان را تعیین می‌کند:
+    \begin{itemize}
+        \item پورت \lr{8080} برای دسترسی به رابط \lr{HTTP} و \lr{API} اصلی \lr{Weaviate}.
+        \item پورت \lr{50051} برای ارتباطات \lr{gRPC}.
+    \end{itemize}
+    \item \textbf{environment}: شامل متغیرهای محیطی است که پارامترهای اجرایی \lr{Weaviate} را پیکربندی می‌کنند:
+    \begin{itemize}
+        \item \lr{QUERY\_DEFAULTS\_LIMIT: 25} — تعداد نتایج پیش‌فرض در هر Query را ۲۵ تعیین می‌کند.
+        \item \lr{AUTHENTICATION\_ANONYMOUS\_ACCESS\_ENABLED: 'true'} — امکان دسترسی ناشناس به \lr{Weaviate} را فعال می‌سازد (بدون نیاز به احراز هویت).
+        \item \lr{PERSISTENCE\_DATA\_PATH: "./data"} — مسیر ذخیره‌سازی داده‌های پایدار را مشخص می‌کند تا داده‌ها حتی پس از توقف کانتینر حذف نشوند.
+        \item \lr{DISABLE\_MODULES: 'all'} — تمام ماژول‌های اختیاری \lr{Weaviate} (از جمله مدل‌های بردارساز) را غیرفعال می‌کند و تنها هسته‌ی اصلی پایگاه‌داده اجرا می‌شود.
+    \end{itemize}
+\end{itemize}
+
+\paragraph{نتیجه‌ی اجرا:}
+با اجرای دستور زیر:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+docker-compose up -d
+\end{lstlisting}
+\end{latin}
+
+سرویسی تحت عنوان \lr{Weaviate} در محیط \lr{Docker} اجرا می‌شود که از طریق آدرس‌های زیر در دسترس است:
+\begin{itemize}
+    \item \lr{HTTP API: http://localhost:8080}
+    \item \lr{gRPC API: localhost:50051}
+\end{itemize}
+
+این تنظیمات باعث می‌شود \lr{Weaviate} به‌صورت پایدار و مستقل در بستر \lr{Docker} اجرا گردد، داده‌ها در مسیر محلی ذخیره شوند و امکان ارتباط از طریق پورت‌های مشخص‌شده فراهم گردد.
+
+\subsection{۵ – گرفتن API}
+برای استفاده از مدل‌های \lr{LLM} نیاز به \lr{API} آن‌ها دارید.  
+در این پروژه، \lr{API}های مدنظر از \lr{OpenRouter} گرفته شده‌اند.
+
+برای گرفتن \lr{API} به طریق زیر عمل کنید:
+\begin{enumerate}
+    \item به وب‌سایت رسمی \lr{OpenRouter} بروید: \lr{\url{https://openrouter.ai/}}
+    \item در صورتی که حساب کاربری ندارید، ابتدا یک حساب کاربری بسازید و لاگین کنید.
+    \item روی علامت منو در بالا سمت راست صفحه کلیک کرده و گزینه‌ی \lr{keys} را انتخاب کنید.
+    \item در صفحه‌ی مورد نظر، روی دکمه‌ی \lr{Create API Key} کلیک کنید.
+    \item یک نام برای کلید خود انتخاب کرده و گزینه‌ی \lr{Create} را بزنید.
+    \item سپس یک \lr{pop-up} به شما نمایش داده می‌شود. از همین قسمت کلید خود را کپی و در یک فایل ذخیره کنید.
+\end{enumerate}
+
+توجه کنید که پس از بستن \lr{pop-up}، نمی‌توانید به محتوای کلید دست یابید.  
+سپس باید کلید خود را در متغیرهای محیطی پروژه ذخیره کنید تا در کد از آن استفاده شود.
+
+برای این کار، به پوشه‌ی پروژه رفته و در آنجا فایلی با نام \lr{.env} بسازید و خط زیر را در آن کپی کنید. سپس کلید خود را در قسمت \lr{your\_key} قرار دهید:
+\begin{latin}
+\begin{lstlisting}[language=bash]
+LLM_API_KEY=your_key
+\end{lstlisting}
+\end{latin}
+
+در پایان، فایل را ذخیره کنید.
+
+
+% *************************************************************
+
+
+\section{ایجاد Collection در پایگاه‌داده Weaviate}
+
+برای ذخیره‌سازی داده‌ها در پایگاه‌داده باید یک \lr{collection} ایجاد کنید.  
+برای این کار ابتدا یک cmd باز کرده و به مسیر root پوژه بروید، سپس اسکریپت \lr{create\_database\_collection.py} را به‌صورت زیر اجرا نمایید:
+
+\begin{latin}
+\begin{lstlisting}
+python import_data_into_database/create_database_collection.py
+\end{lstlisting}
+\end{latin}
+
+\subsection{توضیح کد پایتون اتصال و پیکربندی Weaviate}
+
+کد زیر به‌منظور اتصال به پایگاه‌داده‌ی برداری \lr{Weaviate}، ایجاد یک مجموعه (\lr{Collection}) و تعریف ساختار داده‌ها در آن نوشته شده است.  
+این کد از کتابخانه‌ی رسمی \lr{weaviate-client} در پایتون استفاده می‌کند.
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+import weaviate
+import weaviate.classes as wvc
+\end{lstlisting}
+\end{latin}
+
+دو ماژول اصلی کتابخانه \lr{Weaviate} فراخوانی می‌شوند:
+
+\begin{itemize}
+    \item \lr{weaviate}: برای مدیریت اتصال و انجام عملیات اصلی.
+    \item \lr{weaviate.classes}: برای تعریف تنظیمات و ساختار مجموعه‌ها (\lr{Collections}) و ویژگی‌ها (\lr{Properties}).
+\end{itemize}
+
+% -------------------------------------------------------------
+
+\subsection{اتصال به Weaviate}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+try:
+    client = weaviate.connect_to_local()
+    print("Successfully connected to Weaviate!")
+except Exception as e:
+    print(f"Failed to connect to Weaviate: {e}")
+    exit()
+\end{lstlisting}
+\end{latin}
+
+در این بخش، با استفاده از تابع \lr{connect\_to\_local()} یک اتصال به سرویس محلی \lr{Weaviate} برقرار می‌شود (یعنی همان سرویسی که با \lr{Docker} روی \lr{localhost:8080} اجرا شده است).
+
+% -------------------------------------------------------------
+
+\subsection{تعریف نام مجموعه (Collection)}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+collection_name = "Multimodal_Collection"
+\end{lstlisting}
+\end{latin}
+
+در این خط، نام مجموعه‌ای که قرار است در پایگاه داده ایجاد شود مشخص می‌گردد.  
+در \lr{Weaviate}، مجموعه‌ها مشابه «جداول» در پایگاه‌داده‌های رابطه‌ای هستند.
+
+% -------------------------------------------------------------
+
+\subsection{حذف مجموعه‌ی قبلی (در صورت وجود)}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+if client.collections.exists(collection_name):
+    print(f"Collection '{collection_name}' already exists. Deleting it.")
+    client.collections.delete(collection_name)
+\end{lstlisting}
+\end{latin}
+
+در این بخش ابتدا بررسی می‌شود که آیا مجموعه‌ای با همین نام از قبل وجود دارد یا خیر.  
+اگر وجود داشته باشد، برای جلوگیری از تکرار و تعارض، ابتدا حذف می‌شود.
+
+% -------------------------------------------------------------
+
+\subsection{ایجاد مجموعه‌ی جدید}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+print(f"Creating collection '{collection_name}'...")
+my_collection = client.collections.create(
+    name=collection_name,
+    properties=[
+        wvc.config.Property(name="modality", data_type=wvc.config.DataType.TEXT),
+        wvc.config.Property(name="content", data_type=wvc.config.DataType.TEXT),
+        wvc.config.Property(name="contentId", data_type=wvc.config.DataType.TEXT),
+        wvc.config.Property(name="filePath", data_type=wvc.config.DataType.TEXT),
+    ]
+)
+print(f"Collection '{collection_name}' created successfully.")
+\end{lstlisting}
+\end{latin}
+
+در این مرحله، مجموعه‌ای جدید با نام \lr{Multimodal\_Collection} ایجاد می‌شود.  
+پارامتر \lr{properties} مشخص‌کننده‌ی فیلدهای درون این مجموعه است.  
+هر ویژگی با استفاده از کلاس \lr{wvc.config.Property} تعریف می‌شود و نوع داده‌ی آن نیز با \lr{wvc.config.DataType} تعیین می‌گردد.
+
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{نام ویژگی} & \textbf{نوع داده} & \textbf{توضیح} \\
+\hline
+modality & TEXT & نوع داده‌ی ورودی (مثلاً متن، تصویر یا صوت) \\
+\hline
+content & TEXT & محتوای اصلی داده \\
+\hline
+contentId & TEXT & شناسه‌ی منحصربه‌فرد هر داده یا سند \\
+\hline
+filePath & TEXT & مسیر فایل اصلی در سیستم محلی یا فضای ذخیره‌سازی \\
+\hline
+\end{tabular}
+\end{center}
+
+به‌این‌ترتیب، ساختار مجموعه به‌گونه‌ای طراحی شده که از داده‌های چندرسانه‌ای (متن، تصویر و صوت) پشتیبانی کند.  
+در این مجموعه، هر داده شامل فیلدهای بالا است:
+
+\subsubsection*{داده‌های متنی}
+\begin{latin}
+\begin{verbatim}
+modality = "text"
+content = Original text
+contentId = a unique id
+filePath = ""
+\end{verbatim}
+\end{latin}
+
+\subsubsection*{داده‌های تصویری}
+\begin{latin}
+\begin{verbatim}
+modality = "image"
+content = ""
+contentId = a unique id
+filePath = "/content/image_dataset/{file_name}"
+\end{verbatim}
+\end{latin}
+
+\subsubsection*{داده‌های صوتی}
+\begin{latin}
+\begin{verbatim}
+modality = "audio"
+content = Audio transcription
+contentId = a unique id
+filePath = "/content/audio_dataset/{file_name}"
+\end{verbatim}
+\end{latin}
+
+% -------------------------------------------------------------
+
+\subsection{بستن اتصال}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+client.close()
+\end{lstlisting}
+\end{latin}
+
+پس از اتمام عملیات، اتصال به پایگاه داده بسته می‌شود تا منابع آزاد شوند.
+
+
+% *******************************************************************
+
+
+\section{دیتاست‌}
+
+دیتاست‌ها در فضای \lr{Google Drive} ذخیره شده‌اند و از طریق لینک‌های زیر قابل دانلود هستند:
+
+\begin{itemize}
+    \item دیتاست تصاویر: \\ \href{https://drive.google.com/file/d/1a68xCnTnnRPrBSM7bHSRzHwLBpOoLWuL/view?usp=sharing}{\url{https://drive.google.com/file/d/1a68xCnTnnRPrBSM7bHSRzHwLBpOoLWuL/view?usp=sharing}}
+    \item دیتاست فایل‌های صوتی: \\ \href{https://drive.google.com/file/d/1BS72l_5Z6wvGiq9Sn8zuV4-IfwxLRvR5/view?usp=sharing}{\url{https://drive.google.com/file/d/1BS72l_5Z6wvGiq9Sn8zuV4-IfwxLRvR5/view?usp=sharing}}
+    \item دیتاست متن: \\ \href{https://drive.google.com/file/d/1RMjyguno7iLfUtlW9gumdwrgbB9ht252/view?usp=sharing}{\url{https://drive.google.com/file/d/1RMjyguno7iLfUtlW9gumdwrgbB9ht252/view?usp=sharing}}
+\end{itemize}
+
+در پوشه‌ی پروژه، یک پوشه‌ی جدید به نام \lr{content} ایجاد کنید.  
+در این پوشه، سه زیرپوشه با نام‌های زیر بسازید و داده‌های مربوطه را در هرکدام قرار دهید:
+
+\begin{itemize}
+    \item \lr{audio\_dataset}: شامل تمام فایل‌های صوتی
+    \item \lr{image\_dataset}: شامل تمام تصاویر
+    \item \lr{text\_dataset}: شامل فایل \lr{CSV} داده‌های متنی
+\end{itemize}
+
+در صورتی‌که قصد دارید از دیتاست‌ها یا داده‌های خود استفاده کنید، روال به همان شکل بالا است.  
+کافی است تمام تصاویر خود را در پوشه‌ی \lr{image\_dataset} و تمام فایل‌های صوتی را در پوشه‌ی \lr{audio\_dataset} قرار دهید.
+
+برای داده‌های متنی، باید یک فایل \lr{CSV} با ساختار زیر ایجاد نمایید:  
+متن‌های طولانی، فایل‌های \lr{PDF} و سایر متون را به رشته‌های (\lr{string}) جداگانه تقسیم کنید.  
+سپس فایلی با فرمت \lr{CSV} ایجاد کرده و در آن ستونی به نام \lr{text} قرار دهید.  
+تمام داده‌های متنی (رشته‌ها) را در این ستون وارد کنید.
+
+\begin{latin}
+\begin{lstlisting}
+text
+data 1
+data 2
+data 3
+...
+\end{lstlisting}
+\end{latin}
+
+داده‌های متنی و صوتی شما می‌توانند به زبان‌های فارسی یا انگلیسی باشند.
+
+
+% **************************************************************
+
+
+\section{مدل \lr{open\_clip}}
+برای استفاده از مدل \lr{open\_clip} باید وزن‌های آن را دانلود کنید. \\
+وزن‌ها را می‌توانید از لینک زیر در گوگل‌درایو دریافت کنید: \\[3pt]
+\href{https://drive.google.com/file/d/1czuHrdWylmzYHA1Rh5NQJsnFDB9BSp7Y/view?usp=sharing}{\url{https://drive.google.com/file/d/1czuHrdWylmzYHA1Rh5NQJsnFDB9BSp7Y/view?usp=sharing}}
+
+\vspace{6pt}
+پس از دانلود، فایل را در مسیر زیر قرار دهید: \\[3pt]
+\texttt{PROJECT\_ROOT/open\_clip\_weights/ViT-B-32-openai/}
+
+
+% ************************************************************
+
+
+\section{وارد کردن داده‌ها به دیتابیس}
+
+\subsection{وارد کردن داده‌های تصویری به دیتابیس}
+
+پس از قرار دادن تمام تصاویر در پوشه مربوطه، یک \lr{CMD} باز کنید و به مسیر پروژه بروید.  
+سپس با دستور زیر اسکریپت پایتون با نام \texttt{images.py} را اجرا کنید:
+
+\begin{latin}
+\begin{lstlisting}
+python import_data_into_database/import_local_data/images.py
+\end{lstlisting}
+\end{latin}
+
+این اسکریپت تمام داده های داخل پوشه \lr{PROJECT\_ROOT/content/image\_dataset} را بارگذاری میکند، برای هر کدام یک embedding تولید میکند و سپس آن embedding را به همراه مسیر فایل و چند اطلاعات دیگر در دیتابیس ذخیره میکند
+
+\subsubsection*{توضیح کد}
+
+این اسکریپت در ابتدا با استفاده از کد زیر به دیتابیس و collection ای که از قبل ساخته‌ایم متصل می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+try:
+    weaviate_client = weaviate.connect_to_local()
+    print("✅ Connected to Weaviate")
+    collection = weaviate_client.collections.get("Multimodal_Collection")
+except Exception as e:
+    print(f"❌ Weaviate connection failed: {e}")
+    weaviate_client = None
+\end{lstlisting}
+\end{latin}
+
+در این بخش، با استفاده از تابع \texttt{connect\_to\_local()} یک اتصال به سرویس محلی Weaviate برقرار می‌شود (همان سرویسی که با Docker روی \lr{localhost:8080} اجرا شده است).
+
+\subsubsection*{تنظیمات مدل CLIP}
+
+کد زیر تنظیمات مدل CLIP را انجام می‌دهد؛ این مدل برای تولید \lr{embedding} داده‌ها به کار می‌رود:
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+MODEL_NAME = "ViT-B-32"
+PRETRAINED_LOCAL_PATH = (
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+clip_model, _, preprocess = open_clip.create_model_and_transforms(
+    MODEL_NAME, pretrained=PRETRAINED_LOCAL_PATH
+)
+tokenizer = open_clip.get_tokenizer(MODEL_NAME)
+clip_model.to(DEVICE).eval()
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح پارامترها:}
+\begin{itemize}
+    \item \textbf {MODEL\_NAME = \lr{"ViT-B-32"}}: نام معماری مدل CLIP \lr{(Vision Transformer Base with patch size = 32×32).}
+    \item \textbf{PRETRAINED\_LOCAL\_PATH}: مسیر فایل وزن‌های از پیش‌آموزش داده‌شده‌ی مدل.
+    \item \textbf{DEVICE}: بررسی وجود GPU (\lr{CUDA})، در صورت نبود GPU از CPU استفاده می‌شود.
+    \item \textbf{clip\_model, preprocess}: بارگذاری مدل و تابع پیش‌پردازش تصاویر.
+    \item \textbf{tokenizer}: توکنایزر مخصوص همان مدل.
+    \item \textbf{clip\_model.to(DEVICE).eval()}: انتقال مدل به GPU یا CPU و قرار دادن در حالت ارزیابی.
+\end{itemize}
+
+\subsubsection*{بارگذاری و پردازش تصاویر}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+if __name__ == "__main__":
+    image_folder = "./content/image_dataset"
+    process_images(image_folder)
+    weaviate_client.close()
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد:}
+\begin{itemize}
+    \item مسیر پوشه حاوی تصاویر مشخص شده است.
+    \item تابع \texttt{process\_images} برای تمام تصاویر داخل پوشه مربوطه \lr{embedding} تولید می‌کند و آنها را در دیتابیس ذخیره می‌کند.
+\end{itemize}
+
+\subsubsection*{تابع \texttt{process\_images}}
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+def process_images(image_folder: str, max_workers: int = 8):
+    """Process and store image embeddings in parallel."""
+    images = [
+        file_path
+        for file_path in os.listdir(image_folder)
+        if file_path.lower().endswith((".jpg", ".jpeg", ".png"))
+    ]
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(
+                store_image_item, os.path.splitext(os.path.basename(img_name))[0], img_name
+            )
+            for img_name in images
+        ]
+    for _ in tqdm(as_completed(futures), total=len(futures), desc="Processing images"):
+        pass
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح تابع}
+\begin{itemize}
+    \item \textbf{ورودی‌ها:}
+    \begin{itemize}
+        \item \texttt{image\_folder}: مسیر پوشه‌ای که تصاویر داخل آن هستند.
+        \item \texttt{max\_workers}: حداکثر تعداد \lr{thread}‌هایی که همزمان می‌توانند کار کنند (پیش‌فرض ۸).
+    \end{itemize}
+    \item \textbf{جمع‌آوری مسیر تصاویر:}
+    \begin{itemize}
+        \item با \texttt{os.listdir(image\_folder)} تمام فایل‌های داخل پوشه گرفته می‌شوند.
+        \item با شرط \texttt{endswith} فقط فایل‌هایی که پسوند \texttt{.jpg}, \texttt{.jpeg} یا \texttt{.png} دارند انتخاب می‌شوند.
+        \item نتیجه یک لیست از نام فایل‌ها است که به \texttt{images} ذخیره می‌شود.
+    \end{itemize}
+    \item \textbf{پردازش موازی با \texttt{ThreadPoolExecutor}:}
+    \begin{itemize}
+        \item \texttt{ThreadPoolExecutor} یک \lr{thread pool} ایجاد می‌کند تا چند تصویر همزمان پردازش شوند.
+        \item \texttt{\lr{executor.submit(func, arg1, arg2, ...)}} یک کار (\lr{task}) برای اجرای تابع \texttt{func} با آرگومان‌های مشخص ایجاد می‌کند.
+        \item برای هر تصویر:
+        \begin{itemize}
+            \item نام فایل بدون پسوند (\texttt{os.path.splitext(os.path.basename(img\_name))[0]}) به عنوان \texttt{item\_id} استفاده می‌شود.
+            \item مسیر تصویر به \texttt{store\_image\_item} داده می‌شود تا \lr{embedding} آن ذخیره شود.
+        \end{itemize}
+        \item نتیجه یک لیست از \texttt{futures} است. هر \texttt{future} نماینده نتیجه یک کار در حال اجرا است.
+    \end{itemize}
+    \item \textbf{نمایش پیشرفت پردازش:}
+    \begin{itemize}
+        \item \texttt{as\_completed(futures)} یک \lr{generator} برمی‌گرداند که هر بار یکی از کارها تمام شود، آن را yield می‌کند.
+        \item \texttt{\lr{tqdm(..., desc="Processing images")}} یک نوار پیشرفت (\lr{progress bar}) نمایش می‌دهد.
+    \end{itemize}
+\end{itemize}
+
+
+
+\subsubsection*{تابع store\_image\_item}
+
+در تابع \lr{process\_images} از تابع زیر استفاده شده است
+
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+def store_image_item(item_id: str, img_name: str):
+    """Store image embedding and metadata in Weaviate."""
+    embedding = get_embedding("image", img_name)
+    relative_path = f"/content/image_dataset/{img_name}"
+    properties = {
+        "contentId": item_id,
+        "modality": "image",
+        "filePath": relative_path,
+        "content": "",
+    }
+    collection.data.insert(properties=properties, vector=embedding.tolist())
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح پارامترها و مراحل:}
+\begin{itemize}
+    \item \textbf{پارامترها:}
+    \begin{itemize}
+        \item \texttt{item\_id}: شناسه یکتا برای هر تصویر (معمولاً نام فایل بدون پسوند).
+        \item \texttt{img\_name}: نام فایل تصویر یا مسیر نسبی آن.
+    \end{itemize}
+    \item \textbf{تولید embedding تصویر:} 
+    \begin{itemize}
+        \item با استفاده از تابع \texttt{\lr{get\_embedding("image", img\_name)}}، تصویر به یک بردار عددی (vector) تبدیل می‌شود.
+        \item این embedding برای جستجوی شباهت و یادگیری ماشین استفاده می‌شود.
+    \end{itemize}
+    \item \textbf{تعیین مسیر نسبی تصویر:} 
+    \begin{itemize}
+        \item \texttt{relative\_path = f"/content/image\_dataset/\{img\_name\}"} برای ذخیره در metadata ساخته می‌شود.
+    \end{itemize}
+    \item \textbf{آماده‌سازی metadata:}
+    \begin{itemize}
+        \item \texttt{properties} شامل ویژگی‌های تصویر است:
+        \begin{itemize}
+            \item \texttt{contentId}: شناسه یکتا تصویر
+            \item \texttt{modality}: نوع داده، اینجا \texttt{"image"}
+            \item \texttt{filePath}: مسیر تصویر
+            \item \texttt{content}: خالی برای تصاویر
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{ذخیره در Weaviate:}
+    \begin{itemize}
+        \item \texttt{\r{collection.data.insert(properties=properties,vector=embedding.tolist())}} داده‌ها و embedding تصویر را در دیتابیس ذخیره می‌کند.
+        \item این کار تصویر و بردار ویژگی آن را برای جستجوی مشابهت و بازیابی سریع آماده می‌کند.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection*{تابع \texttt{get\_embedding}}
+
+برای تولید embedding برای تصاویر از تابع زیر استفاده شده است
+
+\begin{latin}
+\begin{lstlisting}[language=python]
+def get_embedding(modality: str, image_name: Union[str, None]) -> np.ndarray:
+    mod = modality.lower()
+    if mod == "image":
+        if not isinstance(image_name, str):
+            raise ValueError("`image_name` must be a string.")
+
+        img_path = f"./content/image_dataset/{image_name}"
+        img = Image.open(img_path).convert("RGB")
+        x = preprocess(img).unsqueeze(0).to(DEVICE)
+
+        with torch.no_grad():
+            features = clip_model.encode_image(x)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
+    else:
+        raise ValueError("`modality` must be 'image'.")
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح تابع:}
+\begin{itemize}
+    \item \textbf{ورودی‌ها:}
+    \begin{itemize}
+        \item \texttt{modality}: نوع داده
+        \item \texttt{image\_name}: نام فایل تصویر (یا None اگر ورودی نامعتبر باشد).
+    \end{itemize}
+    \item \textbf{بارگذاری و آماده‌سازی تصویر:}
+    \begin{itemize}
+        \item مسیر تصویر ساخته می‌شود: \texttt{img\_path = f"./content/image\_dataset/\{image\_name\}"}.
+        \item تصویر با \texttt{PIL} باز و به \texttt{RGB} تبدیل می‌شود.
+        \item با تابع \texttt{preprocess} آماده‌سازی می‌شود (تغییر اندازه، نرمال‌سازی و تبدیل به \lr{Tensor}).
+        \item \texttt{unsqueeze(0)} برای اضافه کردن بعد batch و \texttt{.to(DEVICE)} برای انتقال به CPU/GPU.
+    \end{itemize}
+    \item \textbf{تولید embedding با CLIP:}
+    \begin{itemize}
+        \item با \texttt{torch.no\_grad()} محاسبه گرادیان غیرفعال می‌شود (صرفه‌جویی در حافظه و سرعت).
+        \item \texttt{clip\_model.encode\_image(x)} تصویر را به یک بردار ویژگی (embedding) تبدیل می‌کند.
+        \item نرمال‌سازی: \texttt{\lr{features / features.norm(dim=-1,keepdim=True)}} تا طول بردار برابر ۱ شود (مناسب جستجوی شباهت \lr{cosine}).
+    \end{itemize}
+    \item \textbf{تبدیل به NumPy و بازگرداندن:}
+    \begin{itemize}
+        \item \texttt{detach()} از گراف محاسباتی جدا می‌کند.
+        \item \texttt{.cpu()} بردار را روی CPU قرار می‌دهد.
+        \item \texttt{.numpy()} به آرایه NumPy تبدیل می‌کند.
+        \item \texttt{.reshape(-1)} بردار را یک‌بعدی می‌کند و باز می‌گرداند.
+    \end{itemize}
+\end{itemize}
+
+
+% ********************************************************************
+
+
+\subsection{وارد کردن داده‌های صوتی به دیتابیس}
+
+در این بخش، فرآیند وارد کردن داده‌های صوتی به پایگاه داده توضیح داده می‌شود.  
+در ابتدا، پس از قرار دادن تمامی فایل‌های صوتی در پوشه‌ی مربوطه، یک پنجره‌ی \lr{cmd} باز کرده و به مسیر پروژه بروید. سپس با استفاده از دستور زیر، اسکریپت پایتون با نام \lr{audio.py} اجرا می‌شود:
+
+\begin{latin}
+\begin{lstlisting}
+python import_data_into_database/import_local_data/audio.py
+\end{lstlisting}
+\end{latin}
+
+این اسکریپت تمام فایل‌های صوتی داخل پوشه \lr{PROECT\_ROOT/content/audio\_dataset} را خوانده و با استفاده از مدل Whisper متن آنها را به دست می‌آورد و همچنین متن‌های غیرانگلیسی را به فارسی ترجمه میکند. سپس برای متن‌های به دست آمده با استفاده از مدل CLIP یک embedding تولید میکند و در نهایت این embedding را به همراه مسیر فایل صوتی و همچنین متن به دست آمده در دیتابیس ذخیره میکند.
+
+\subsubsection{توضیح کد}
+
+در ابتدای اجرای این اسکریپت، اتصال به پایگاه داده‌ی \lr{Weaviate} و کالکشن (\lr{collection}) از پیش ساخته‌شده برقرار می‌شود. این کار توسط کد زیر انجام می‌گیرد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+try:
+    weaviate_client = weaviate.connect_to_local()
+    print("✅ Connected to Weaviate")
+    collection = weaviate_client.collections.get("Multimodal_Collection")
+except Exception as e:
+    print(f"❌ Weaviate connection failed: {e}")
+    weaviate_client = None
+\end{lstlisting}
+\end{latin}
+
+در این بخش، تابع \lr{connect\_to\_local()} اتصال به سرویس محلی \lr{Weaviate} را برقرار می‌کند (همان سرویسی که با \lr{Docker} روی \lr{localhost:8080} اجرا شده است).
+
+\subsubsection{تنظیمات مدل \lr{CLIP}}
+
+در ادامه، تنظیمات مربوط به مدل \lr{CLIP} انجام می‌شود. این مدل برای تولید \lr{embedding} داده‌ها به‌کار می‌رود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+MODEL_NAME = "ViT-B-32"
+PRETRAINED_LOCAL_PATH = (
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+clip_model, _, preprocess = open_clip.create_model_and_transforms(
+    MODEL_NAME, pretrained=PRETRAINED_LOCAL_PATH
+)
+tokenizer = open_clip.get_tokenizer(MODEL_NAME)
+clip_model.to(DEVICE).eval()
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+\item \lr{MODEL\_NAME}: نام معماری مدل \lr{CLIP} را مشخص می‌کند (مدل \lr{Vision Transformer Base} با اندازه‌ی پچ 32×32).
+\item \lr{PRETRAINED\_LOCAL\_PATH}: مسیر فایل وزن‌های ازپیش‌آموزش‌داده‌شده‌ی مدل را تعیین می‌کند تا از آن بارگذاری شود.
+\item \lr{DEVICE}: بررسی می‌کند که آیا \lr{GPU (CUDA)} در دسترس است یا خیر؛ در صورت وجود از \lr{GPU} و در غیر این صورت از \lr{CPU} استفاده می‌شود.
+\item \lr{create\_model\_and\_transforms}: مدل \lr{CLIP} و توابع پیش‌پردازش آن را بارگذاری می‌کند.
+\item \lr{tokenizer}: توکنایزر مخصوص مدل را دریافت می‌کند تا متون به توکن‌های عددی تبدیل شوند.
+\item \lr{clip\_model.to(DEVICE).eval()}: مدل را به دستگاه مربوطه منتقل کرده و در حالت ارزیابی قرار می‌دهد.
+\end{itemize}
+
+\subsubsection{مدل \lr{Whisper}}
+
+در این بخش از مدل \lr{Whisper} برای استخراج متن از فایل‌های صوتی استفاده می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+MODEL_TYPE = "small"
+whisper_model = whisper.load_model(MODEL_TYPE, device=DEVICE)
+\end{lstlisting}
+\end{latin}
+
+مدل \lr{Whisper} به کمک پارامتر \lr{MODEL\_TYPE} مقداردهی می‌شود.  
+این پارامتر می‌تواند یکی از مقادیر \lr{small}، \lr{medium} یا \lr{large} باشد.  
+مدل‌های \lr{medium} و \lr{large} تنها بر روی \lr{GPU} قابل اجرا هستند، در حالی‌که مدل \lr{small} بر روی \lr{CPU} نیز قابل بارگذاری است، هرچند دقت پایین‌تری دارد.  
+همچنین، مدل \lr{small} برای فایل‌های صوتی زبان انگلیسی عملکرد مناسبی دارد ولی برای زبان فارسی ضعیف‌تر است؛ بنابراین در صورت نیاز به پشتیبانی از زبان فارسی، استفاده از مدل‌های \lr{medium} یا \lr{large} توصیه می‌شود.
+
+\subsubsection{بارگذاری و پردازش داده‌های صوتی}
+
+در ادامه، داده‌های صوتی بارگذاری و پردازش می‌شوند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if __name__ == "__main__":
+    audio_folder = "./content/audio_dataset"
+    audio_json = f"{audio_folder}/audio_metadata.json"
+
+    transcribe_audios(audio_folder, audio_json)
+    process_audio_json(audio_json)
+    weaviate_client.close()
+\end{lstlisting}
+\end{latin}
+
+مسیر فایل‌ها به‌صورت خودکار تنظیم می‌شود و نیازی به تغییر ندارد.  
+پردازش داده‌های صوتی در دو مرحله انجام می‌شود:
+\begin{enumerate}
+\item استخراج متن (\lr{Transcription}) از فایل‌های صوتی؛
+\item تولید \lr{embedding} از متون و ذخیره در پایگاه داده.
+\end{enumerate}
+
+\subsubsection{مرحله اول: استخراج متن از فایل‌های صوتی}
+
+این کار با تابع زیر انجام می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def transcribe_audios(folder, out_json="results.json"):
+    if not os.path.isdir(folder):
+        raise ValueError(f"No folder: {folder}")
+
+    files = sorted(
+        [
+            os.path.join(folder, file_path)
+            for file_path in os.listdir(folder)
+            if file_path.lower().endswith((".wav", ".mp3", ".m4a"))
+        ]
+    )
+
+    results = [
+        {
+            "id": i + 1,
+            "filename": os.path.basename(audio_path),
+            "audio_path": audio_path,
+            "transcription": transcribe_to_english(audio_path),
+        }
+        for i, audio_path in enumerate(tqdm(files, desc="Processing"))
+    ]
+
+    with open(out_json, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print(f"✅ Saved {len(results)} items to {out_json}")
+    return results
+\end{lstlisting}
+\end{latin}
+
+
+\textbf{تعریف تابع و ورودی‌ها}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def transcribe_audios(folder, out_json="results.json"):
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{folder}: مسیر پوشه‌ای که فایل‌های صوتی در آن قرار دارند.
+    \item \lr{out\_json}: نام فایل خروجی با فرمت \lr{JSON} (به‌صورت پیش‌فرض برابر با \lr{"results.json"}).
+\end{itemize}
+
+\textbf{جمع‌آوری فایل‌های صوتی}
+
+در گام نخست، تابع تمامی فایل‌های صوتی موجود در پوشه‌ی مشخص‌شده را شناسایی و آماده‌ی پردازش می‌کند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+files = sorted(
+    [
+        os.path.join(folder, file_path)
+        for file_path in os.listdir(folder)
+        if file_path.lower().endswith((".wav", ".mp3", ".m4a"))
+    ]
+)
+\end{lstlisting}
+\end{latin}
+
+در این بخش:
+\begin{itemize}
+    \item تمامی فایل‌های موجود در پوشه بررسی می‌شوند.
+    \item تنها فایل‌هایی که پسوند آن‌ها \lr{.wav}، \lr{.mp3} یا \lr{.m4a} باشد انتخاب می‌گردند.
+    \item مسیر کامل هر فایل با استفاده از تابع \lr{os.path.join} ساخته می‌شود.
+    \item سپس فهرست فایل‌ها با دستور \lr{sorted} مرتب می‌شود.
+\end{itemize}
+
+در نهایت، متغیر \lr{files} شامل فهرستی از مسیر کامل تمام فایل‌های صوتی موجود در پوشه است.
+
+\textbf{ایجاد خروجی برای هر فایل}
+
+در این مرحله، برای هر فایل صوتی موجود در فهرست، خروجی متنی (متن استخراج‌شده از گفتار) تولید و در قالب یک ساختار داده‌ی دیکشنری ذخیره می‌گردد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+results = [
+    {
+        "id": i + 1,
+        "filename": os.path.basename(audio_path),
+        "audio_path": audio_path,
+        "transcription": transcribe_to_english(audio_path),
+    }
+    for i, audio_path in enumerate(tqdm(files, desc="Processing"))
+]
+\end{lstlisting}
+\end{latin}
+
+در این بخش:
+\begin{itemize}
+    \item از کتابخانه‌ی \lr{tqdm} برای نمایش نوار پیشرفت استفاده می‌شود.
+    \item برای هر فایل صوتی:
+    \begin{itemize}
+        \item \lr{id}: شماره‌ی ترتیبی فایل (از عدد ۱ آغاز می‌شود).
+        \item \lr{filename}: نام فایل بدون مسیر.
+        \item \lr{audio\_path}: مسیر کامل فایل.
+        \item \lr{transcription}: نتیجه‌ی حاصل از اجرای تابع \lr{transcribe\_to\_english(audio\_path)} که متن انگلیسی استخراج‌شده از گفتار در فایل است.
+    \end{itemize}
+\end{itemize}
+
+در پایان، خروجی این بخش شامل فهرستی از دیکشنری‌هاست که هر کدام نمایانگر اطلاعات و متن استخراج‌شده از یک فایل صوتی می‌باشد.
+
+\textbf{ذخیره در فایل \lr{JSON}}
+
+در این مرحله، داده‌های استخراج‌شده در قالب فایل \lr{JSON} ذخیره می‌شوند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+with open(out_json, "w", encoding="utf-8") as f:
+    json.dump(results, f, ensure_ascii=False, indent=2)
+\end{lstlisting}
+\end{latin}
+
+توضیحات:
+\begin{itemize}
+    \item فایل خروجی \lr{JSON} باز می‌شود و محتوای نتایج در آن نوشته می‌شود.
+    \item پارامتر \lr{ensure\_ascii=False} تضمین می‌کند که کاراکترهای غیرانگلیسی (مانند فارسی) به‌درستی ذخیره شوند.
+    \item مقدار \lr{indent=2} برای زیبایی و خوانایی ساختار فایل خروجی استفاده می‌گردد.
+\end{itemize}
+
+\textbf{تابع \lr{transcribe\_to\_english}}
+
+برای استخراج متن از هر فایل صوتی، از تابع \lr{transcribe\_to\_english} استفاده می‌شود. این تابع وظیفه دارد یک فایل صوتی را دریافت کرده و متن آن را به زبان انگلیسی برگرداند، صرف‌نظر از اینکه زبان اصلی گفتار چه باشد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def transcribe_to_english(path):
+    res = whisper_model.transcribe(path, task="transcribe")
+    lang, text = res.get("language", ""), res.get("text", "").strip()
+    if lang.startswith("en"):
+        return text
+    else:
+        return (
+            whisper_model.transcribe(path, task="translate", language="en")
+            .get("text", "")
+            .strip()
+        )
+\end{lstlisting}
+\end{latin}
+
+\textbf{ورودی}
+
+\begin{itemize}
+    \item \lr{path}: مسیر فایل صوتی ورودی .
+\end{itemize}
+
+\textbf{استخراج گفتار (\lr{Transcription})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+res = whisper_model.transcribe(path, task="transcribe")
+\end{lstlisting}
+\end{latin}
+
+در این مرحله از مدل \lr{Whisper} (مدل تشخیص گفتار از \lr{OpenAI}) استفاده می‌شود.  
+پارامتر \lr{task="transcribe"} به مدل اعلام می‌کند که تنها گفتار را به همان زبان اصلی به متن تبدیل کند، بدون ترجمه.  
+خروجی حاصل در متغیر \lr{res} ذخیره می‌شود که ساختاری مشابه زیر دارد:
+
+\begin{latin}
+\begin{lstlisting}
+{
+    "text": "Bonjour tout le monde",
+    "language": "fr"
+}
+\end{lstlisting}
+\end{latin}
+
+\textbf{استخراج زبان و متن}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+lang, text = res.get("language", ""), res.get("text", "").strip()
+\end{lstlisting}
+\end{latin}
+
+در این مرحله:
+\begin{itemize}
+    \item \lr{lang}: زبان تشخیص‌داده‌شده توسط مدل (مانند \lr{"en"}، \lr{"fr"}، \lr{"fa"}، \lr{"de"} و ...).
+    \item \lr{text}: متن استخراج‌شده از گفتار (پس از حذف فاصله‌های اضافی).
+\end{itemize}
+
+\textbf{بررسی زبان انگلیسی}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if lang.startswith("en"):
+    return text
+\end{lstlisting}
+\end{latin}
+
+اگر زبان تشخیص‌داده‌شده انگلیسی باشد (یعنی مقدار \lr{lang} با \lr{"en"} شروع شود)، همان متن اولیه مستقیماً بازگردانده می‌شود.
+
+\textbf{ترجمه در صورت غیرانگلیسی بودن زبان}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+else:
+    return (
+        whisper_model.transcribe(path, task="translate", language="en")
+        .get("text", "")
+        .strip()
+    )
+\end{lstlisting}
+\end{latin}
+
+در صورتی که زبان اصلی غیرانگلیسی باشد:
+\begin{itemize}
+    \item مدل \lr{Whisper} مجدداً اجرا می‌شود، اما این بار با پارامترهای:
+    \begin{itemize}
+        \item \lr{task="translate"}: به این معنا که مدل همزمان با تشخیص گفتار، ترجمه به انگلیسی را نیز انجام دهد.
+        \item \lr{language="en"}: خروجی نهایی حتماً به زبان انگلیسی باشد.
+    \end{itemize}
+    \item در انتها، تنها مقدار مربوط به کلید \lr{"text"} استخراج شده و فاصله‌های اضافی آن حذف می‌شود.
+\end{itemize}
+
+\textbf{خروجی نهایی}
+
+تابع همواره یک رشته متنی (\lr{string}) بازمی‌گرداند که نسخه‌ی انگلیسی گفتار موجود در فایل صوتی است،  
+صرف‌نظر از اینکه زبان اصلی صوت چه بوده است.  
+
+در پایان این مرحله، یک فایل \lr{JSON} شامل فراداده‌ها (\lr{metadata}) و متن‌های استخراج‌شده در همان پوشه‌ای که فایل‌های صوتی قرار دارند تولید می‌شود.  
+به این ترتیب، برای هر داده‌ی صوتی، یک متن معادل انگلیسی نیز در اختیار خواهیم داشت.
+
+
+\subsubsection{مرحله دوم: تولید و ذخیره‌ی \lr{embedding}}
+
+در این مرحله، با استفاده از تابع \lr{process\_audio\_json}، فایل \lr{JSON} مرحله‌ی قبل خوانده می‌شود و برای هر داده صوتی \lr{embedding} تولید می‌گردد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def process_audio_json(json_path: str, max_workers: int = 8):
+    with open(json_path, "r") as f:
+        metadata = json.load(f)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for item in metadata:
+            file_path = item.get("audio_path", "").strip()
+            transcription = item.get("transcription", "").strip()
+            if not (file_path and transcription):
+                continue
+            content_id = str(item.get("id", os.path.basename(file_path)))
+            futures.append(
+                executor.submit(
+                    store_audio_item,
+                    content_id,
+                    transcription,
+                    os.path.basename(file_path),
+                )
+            )
+
+        for _ in tqdm(
+            as_completed(futures), total=len(futures), desc="�� Processing audios"
+        ):
+            pass
+
+    print(f"✅ Processed {len(metadata)} audio files.")
+\end{lstlisting}
+\end{latin}
+
+
+\textbf{تعریف تابع}
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def process_audio_json(json_path: str, max_workers: int = 8):
+"""Process and store audio embeddings using metadata JSON."""
+\end{lstlisting}
+\end{latin}
+
+ورودی ها: \\
+• \lr{json\_path}: مسیر فایل \lr{JSON} شامل متادیتا (اطلاعات مربوط به فایل‌های صوتی و متن آن‌ها).   \\
+• \lr{max\_workers}: تعداد نخ‌ها (\lr{threads}) برای اجرای موازی (پیش‌فرض: ۸).  
+
+\textbf{خواندن فایل \lr{JSON} ورودی}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+with open(json_path, "r") as f:
+    metadata = json.load(f)
+\end{lstlisting}
+\end{latin}
+
+فایل \lr{JSON} باز شده و محتویات آن در متغیر \lr{metadata} ذخیره می‌شود.  
+
+\textbf{ایجاد \lr{ThreadPool} برای پردازش موازی}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+\end{lstlisting}
+\end{latin}
+
+از \lr{ThreadPoolExecutor} برای اجرای هم‌زمان چند پردازش استفاده می‌شود.   تعداد نخ‌ها برابر مقدار \lr{max\_workers} تعیین می‌شود.  
+
+\textbf{آماده‌سازی وظایف (Tasks)}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+futures = []
+for item in metadata:
+    file_path = item.get("audio_path", "").strip()
+    transcription = item.get("transcription", "").strip()
+    if not (file_path and transcription):
+        continue
+\end{lstlisting}
+\end{latin}
+
+در این بخش:  مسیر فایل صوتی (\lr{audio\_path}) و متن مربوطه (\lr{transcription}) گرفته می‌شود.   اگر مسیر یا متن خالی باشد، آن مورد نادیده گرفته می‌شود.  
+
+\textbf{ارسال کارها به \lr{ThreadPool}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+content_id = str(item.get("id", os.path.basename(file_path)))
+futures.append(
+    executor.submit(
+        store_audio_item,
+        content_id,
+        transcription,
+        os.path.basename(file_path),
+    )
+)
+\end{lstlisting}
+\end{latin}
+
+برای هر فایل معتبر، تابع \lr{store\_audio\_item} به‌صورت غیرهم‌زمان اجرا می‌شود.\\  
+ ورودی‌های آن شامل موارد زیر است:  
+\begin{itemize}
+    \item \lr{content\_id}: شناسه‌ی فایل (از \lr{id} یا نام فایل).  
+    \item \lr{transcription}: متن گفتار استخراج‌شده.  
+    \item \lr{os.path.basename(file\_path)}: نام فایل بدون مسیر.  
+\end{itemize}
+
+\textbf{نمایش نوار پیشرفت}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+for _ in tqdm(
+    as_completed(futures), total=len(futures), desc="�� Processing audios"
+):
+    pass
+\end{lstlisting}
+\end{latin}
+
+از \lr{tqdm} برای نمایش نوار پیشرفت استفاده می‌شود.  
+\lr{as\_completed(futures)} وضعیت تکمیل هر نخ را پیگیری می‌کند.  
+
+
+\textbf{خروجی نهایی}
+در پایان، پیام موفقیت چاپ می‌شود:  
+\lr{"Processed X audio files."}  
+که نشان می‌دهد چند فایل پردازش و ذخیره شده‌اند.  \\
+
+\textbf{تابع \lr{store\_audio\_item}}
+
+در تابع بالا از تابع زیر استفاده شده است. 
+این تابع وظیفه دارد اطلاعات مربوط به هر فایل صوتی (شناسه، متن استخراج‌شده و \lr{embedding}) را در پایگاه داده‌ی برداری \lr{Weaviate} ذخیره نماید.  
+در این فرآیند، بردار \lr{embedding} از متن استخراج‌شده (و نه از خود فایل صوتی) تولید می‌شود.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def store_audio_item(item_id: str, transcription_text: str, audio_name: str = ""):
+    """Store audio transcription embedding and metadata in Weaviate."""
+    relative_path = f"/content/audio_dataset/{audio_name}"
+    embedding = get_embedding("text", transcription_text)
+    properties = {
+        "contentId": item_id,
+        "modality": "audio",
+        "filePath": relative_path,
+        "content": transcription_text,
+    }
+    collection.data.insert(properties=properties, vector=embedding.tolist())
+\end{lstlisting}
+\end{latin}
+
+\textbf{تعریف تابع}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def store_audio_item(item_id: str, transcription_text: str, audio_name: str = ""):
+"""Store audio transcription embedding and metadata in Weaviate."""
+\end{lstlisting}
+\end{latin}
+
+\textbf{ورودی‌ها:}  
+\begin{itemize}
+    \item \lr{item\_id}: شناسه‌ی منحصربه‌فرد فایل (می‌تواند از فایل \lr{JSON} یا نام فایل گرفته شود).  
+    \item \lr{transcription\_text}: متنی که از گفتار صوتی استخراج شده است.  
+\end{itemize}
+
+\textbf{ساخت مسیر فایل (نسبی)}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+relative_path = f"/content/audio_dataset/{audio_name}"
+\end{lstlisting}
+\end{latin}
+
+
+\textbf{تولید \lr{embedding} از متن گفتار}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+embedding = get_embedding("text", transcription_text)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item تابع \lr{get\_embedding} یک بردار عددی (Embedding) از محتوای معنایی متن تولید می‌کند.  
+    \item پارامتر \lr{"text"} نشان می‌دهد که نوع داده‌ی ورودی، متن است (نه تصویر یا صدا).  
+    \item این بردار برای متن استخراج‌شده تولید می‌شود، نه خود فایل صوتی.  
+    \item بردار \lr{embedding} در مراحل بعدی برای جستجوی معنایی (\lr{semantic search}) در \lr{Weaviate} مورد استفاده قرار می‌گیرد.  
+\end{itemize}
+
+\textbf{آماده‌سازی متادیتا برای ذخیره}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+properties = {
+    "contentId": item_id,
+    "modality": "audio",
+    "filePath": relative_path,
+    "content": transcription_text,
+}
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item یک دیکشنری از ویژگی‌های شیء ساخته می‌شود که شامل اطلاعات توصیفی فایل است:
+    \begin{itemize}
+        \item \lr{"contentId"}: شناسه‌ی منحصربه‌فرد فایل.
+        \item \lr{"modality"}: نوع داده
+        \item \lr{"filePath"}: مسیر فایل صوتی در دیتاست.
+        \item \lr{"content"}: متن استخراج‌شده از گفتار.
+    \end{itemize}
+\end{itemize}
+
+\textbf{درج داده در پایگاه داده‌ی \lr{Weaviate}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+collection.data.insert(properties=properties, vector=embedding.tolist())
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item داده‌ها در یک \lr{Collection} (برای مثال \lr{"Multimodal\_Collection"}) در \lr{Weaviate} ذخیره می‌شوند.  
+    \item پارامترها شامل موارد زیر هستند:  
+    \begin{itemize}
+        \item \lr{properties}: متادیتا و اطلاعات توصیفی شامل شناسه، مسیر، نوع داده و متن.  
+        \item \lr{vector}: بردار عددی \lr{embedding} که به صورت لیست ذخیره می‌شود.  
+    \end{itemize}
+    \item به این ترتیب، هر داده‌ی صوتی در \lr{Weaviate} شامل دو بخش اصلی است:  
+    \begin{itemize}
+        \item متادیتا (ویژگی‌های توصیفی)
+        \item بردار معنایی (\lr{embedding})
+    \end{itemize}
+    \item این ساختار باعث می‌شود سیستم بتواند در مراحل بعدی بر اساس معنا و شباهت محتوایی میان فایل‌های صوتی، عملیات جست‌وجو و بازیابی مؤثر انجام دهد.
+\end{itemize}
+
+
+\textbf{تابع \lr{get\_embedding}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
+    mod = modality.lower()
+    if mod == "text":
+        if not isinstance(input_data, str):
+            raise ValueError("`input_data` must be a string.")
+
+        tokens = tokenizer([input_data]).to(DEVICE)
+        with torch.no_grad():
+            features = clip_model.encode_text(tokens)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
+    else:
+        raise ValueError("`modality` must be 'text'.")
+\end{lstlisting}
+\end{latin}
+
+در تابع \lr{store\_audio\_item} از تابع زیر برای به دست آوردن embedding استفاده شده است. این تابع یک بردار \lr{embedding} نرمال‌شده بر اساس نوع داده تولید می‌کند.  
+
+\textbf{تعریف تابع و پارامترها}
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{modality}: نوع داده
+    \item \lr{input\_data}: داده‌ی ورودی برای تولید \lr{embedding} (رشته‌ی متنی).  
+    \item خروجی: آرایه‌ی \lr{NumPy} (\lr{np.ndarray}) که بردار عددی متن را باز می‌گرداند.  
+\end{itemize}
+
+\textbf{توکنایز کردن متن}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+tokens = tokenizer([input_data]).to(DEVICE)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item متن با tokenizer مدل \lr{CLIP} به توکن تبدیل می‌شود.  
+    \item توکن‌ها به دستگاه مناسب (\lr{CPU} یا \lr{GPU}) منتقل می‌شوند.  
+\end{itemize}
+
+\textbf{تولید \lr{embedding} با مدل CLIP}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+with torch.no_grad():
+    features = clip_model.encode_text(tokens)
+    features = features / features.norm(dim=-1, keepdim=True)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{torch.no\_grad()}: جلوگیری از ذخیره‌سازی گرادیان‌ها برای صرفه‌جویی در حافظه و زمان.  
+    \item \lr{clip\_model.encode\_text(tokens)}: تولید بردار عددی متن \lr{(text embedding)} با مدل \lr{CLIP}.  
+    \item \lr{features / features.norm(dim=-1,keepdim=True)}: نرمال‌سازی بردار به طول یک.  
+\end{itemize}
+
+\textbf{بازگرداندن خروجی به \lr{NumPy}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+return features.detach().cpu().numpy().reshape(-1)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{detach()}: جدا کردن بردار از گراف محاسباتی PyTorch.  
+    \item \lr{cpu()}: انتقال داده به حافظه CPU.  
+    \item \lr{numpy()}: تبدیل به آرایه‌ی \lr{NumPy}.  
+    \item \lr{reshape(-1)}: تبدیل به بردار یک‌بعدی.  
+\end{itemize}
+
+
+% ***************************************************************
+
+
+
+\subsection{فرآیند وارد کردن داده‌های متنی}
+
+به منظور وارد کردن داده‌های متنی به دیتابیس، لازم است متون مورد نظر در یک فایل با فرمت \lr{CSV} ذخیره شده و در پوشه مربوطه قرار گیرد. در ادامه، مراحل اجرای اسکریپت و توضیح جزئیات کد ارائه شده است.
+
+\subsubsection{اجرای اسکریپت}
+
+برای اجرای اسکریپت پایتون، ابتدا یک خط فرمان (\lr{CMD}) را باز کرده و به مسیر ریشه‌ی پروژه بروید. سپس، با استفاده از دستور زیر، اسکریپت پایتون با نام \lr{texts.py} را اجرا کنید:
+
+\begin{latin}
+\begin{lstlisting}
+python import_data_into_database/import_local_data/texts.py
+\end{lstlisting}
+\end{latin}
+
+\subsubsection{توضیحات جزئیات کد}
+
+این اسکریپت، وظیفه‌ی اتصال به دیتابیس، بارگذاری مدل \lr{CLIP}، تعریف زنجیره‌ی ترجمه، پردازش داده‌ها (شامل ترجمه و تولید \lr{embedding}) و ذخیره‌ی نهایی در دیتابیس \lr{Weaviate} را بر عهده دارد.
+
+\paragraph{۱. اتصال به دیتابیس \lr{Weaviate}}
+
+این بخش از کد، یک اتصال به سرویس محلی \lr{Weaviate} که با \lr{Docker} روی \lr{localhost:8080} اجرا شده است، برقرار می‌سازد و سپس شیء \lr{collection} مورد نظر را بازیابی می‌کند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+try:
+    weaviate_client = weaviate.connect_to_local()
+    print("✅ Connected to Weaviate")
+    collection = weaviate_client.collections.get("Multimodal_Collection")
+except Exception as e:
+    print(f"❌ Weaviate connection failed: {e}")
+    weaviate_client = None
+\end{lstlisting}
+\end{latin}
+
+\paragraph{۲. تنظیمات مدل \lr{CLIP} برای تولید \lr{Embedding}}
+
+کد زیر تنظیمات مربوط به مدل \lr{CLIP} که برای تولید بردارهای عددی (\lr{embedding}) داده‌های متنی و تصویری به کار می‌رود را انجام می‌دهد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+MODEL_NAME = "ViT-B-32"
+PRETRAINED_LOCAL_PATH = (
+    "./open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+)
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+clip_model, _, preprocess = open_clip.create_model_and_transforms(
+    MODEL_NAME, pretrained=PRETRAINED_LOCAL_PATH
+)
+tokenizer = open_clip.get_tokenizer(MODEL_NAME)
+clip_model.to(DEVICE).eval()
+\end{lstlisting}
+\end{latin}
+
+\textbf{توضیح پارامترها:}
+\begin{itemize}
+    \item \lr{MODEL\_NAME = "ViT-B-32"}: نام معماری مدل \lr{CLIP} (مدل \lr{Vision Transformer Base} با اندازه‌ی \lr{patch} برابر با \lr{32$\times$32}) مشخص می‌شود.
+    \item \lr{PRETRAINED\_LOCAL\_PATH}: مسیر فایل وزن‌های از پیش آموزش داده شده‌ی مدل را تعیین می‌کند.
+    \item \lr{DEVICE = "cuda" if torch.cuda.is\_available() else "cpu"}: در دسترس بودن \lr{GPU} (\lr{CUDA}) بررسی می‌شود. اگر \lr{GPU} در دسترس باشد از آن، در غیر این صورت از \lr{CPU} استفاده خواهد شد.
+    \item \lr{open\_clip.create\_model\_and\_transforms}: مدل \lr{CLIP} را از مسیر داده‌شده بارگذاری کرده و تابع پیش‌پردازش تصاویر (\lr{preprocess}) را برمی‌گرداند.
+    \item \lr{open\_clip.get\_tokenizer}: توکنایزر مخصوص همان مدل برای تبدیل متون به توکن‌های عددی قابل پردازش توسط مدل را بازیابی می‌کند.
+    \item \lr{clip\_model.to(DEVICE).eval()}: مدل را روی دستگاه تعیین شده منتقل کرده و در حالت ارزیابی (\lr{eval}) قرار می‌دهد تا برای پیش‌بینی آماده شود.
+\end{itemize}
+
+\paragraph{۳. بارگذاری کلید \lr{API} برای ترجمه}
+
+از آنجا که داده‌های متنی فارسی باید توسط یک مدل زبانی بزرگ (\lr{LLM}) ترجمه شوند، نیاز است کلید \lr{API} دریافتی از \lr{OpenRouter} که در فایل \lr{".env"} ذخیره شده است، بارگذاری شود.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+load_dotenv()
+API_KEY = os.getenv("LLM_API_KEY")
+if not API_KEY:
+    raise ValueError(
+        "Please set your API key in the environment variable OPENROUTER_API_KEY."
+    )
+\end{lstlisting}
+\end{latin}
+
+\textbf{توضیح:}
+\begin{itemize}
+    \item \lr{load\_dotenv()}: این دستور فایل \lr{.env} را خوانده و تمام متغیرهای محیطی (\lr{environment variables}) داخل آن را در محیط اجرایی پایتون بارگذاری می‌کند.
+    \item \lr{API\_KEY = os.getenv("LLM\_API\_KEY")}: با استفاده از تابع \lr{os.getenv()}، مقدار متغیر محیطی با نام \lr{"LLM\_API\_KEY"} خوانده و در متغیر \lr{API\_KEY} ذخیره می‌شود.
+\end{itemize}
+
+\paragraph{۴. تعریف زنجیره‌ی پردازش (\lr{Pipeline}) برای ترجمه}
+
+کد زیر یک زنجیره‌ی پردازش هوشمند برای ترجمه‌ی خودکار متن فارسی به انگلیسی ایجاد می‌کند که شامل مراحل دریافت متن فارسی، آماده‌سازی \lr{prompt} ترجمه، ارسال به مدل \lr{GPT} از طریق \lr{OpenRouter} و دریافت ترجمه‌ی خالص است.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+LLM_model = ChatOpenAI(
+    model="openai/gpt-oss-20b:free",
+    temperature=0.1,
+    openai_api_base="https://openrouter.ai/api/v1",
+    openai_api_key=API_KEY,
+)
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Translate the following Persian (Farsi) text to clear, natural English.\n"
+            "Return only the translation (no extra explanation).\n\n"
+            "Persian text:\n{text}",
+        )
+    ]
+)
+parser = StrOutputParser()
+vision_chain = prompt | LLM_model | parser
+\end{lstlisting}
+\end{latin}
+
+
+\paragraph{تشریح اجزای زنجیره‌ی ترجمه:}
+
+\begin{enumerate}
+    \item \textbf{ساخت مدل زبانی (\lr{LLM})}
+    \begin{latin}
+        \begin{lstlisting}[language=Python]
+LLM_model = ChatOpenAI(
+    model="openai/gpt-oss-20b:free",
+    temperature=0.1,
+    openai_api_base="https://openrouter.ai/api/v1",
+    openai_api_key=API_KEY,
+)
+        \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \textbf{کارکرد:} ایجاد یک شیء مدل زبانی (\lr{LLM}) از کلاس \lr{ChatOpenAI} (کتابخانه‌ی \lr{LangChain}) برای برقراری ارتباط با مدل \lr{GPT} از طریق \lr{API}.
+        \item \textbf{پارامترها:}
+        \begin{enumerate}
+            \item \lr{model="openai/gpt-oss-20b:free"}: نام مدل زبانی که از \lr{OpenRouter} استفاده می‌کند
+            \item \lr{temperature=0.1}: درجه‌ی تصادفی بودن پاسخ‌ها را مشخص می‌کند (هرچه کمتر، پاسخ‌ها دقیق‌تر و تکراری‌تر).
+            \item \lr{openai\_api\_base="https://openrouter.ai/api/v1"}: آدرس پایه‌ی \lr{API} سرویس \lr{OpenRouter} (جایگزین مستقیم \lr{OpenAI API}).
+            \item \lr{openai\_api\_key=API\_KEY}: کلید \lr{API} شما برای احراز هویت در \lr{OpenRouter}.
+        \end{enumerate}
+    \end{itemize}
+
+    \item \textbf{تعریف قالب پیام (\lr{prompt template})}
+    \begin{latin}
+        \begin{lstlisting}[language=Python]
+prompt = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Translate the following Persian (Farsi) text to clear, natural English.\n"
+            "Return only the translation (no extra explanation).\n\n"
+            "Persian text:\n{text}",
+        )
+    ]
+)
+        \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \textbf{کارکرد:} ساخت یک الگو برای پیام ورودی که به مدل داده می‌شود.
+        \item \textbf{توضیح جزئی:}
+        \begin{enumerate}
+            \item \lr{"system"}: نوع پیام (به مدل دستور می‌دهد چگونه رفتار کند).
+            \item پیام داخل کوتیشن: دستور ترجمه است؛ از مدل خواسته شده: متن فارسی را ترجمه کند، فقط ترجمه را برگرداند (بدون توضیح اضافه).
+            \item \lr{\{text\}}: متغیری است که هنگام اجرا با متن واقعی جایگزین می‌شود.
+        \end{enumerate}
+    \end{itemize}
+
+    \item \textbf{ساخت مفسر خروجی (\lr{parser})}
+    \begin{latin}
+        \begin{lstlisting}[language=Python]
+parser = StrOutputParser()
+        \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \textbf{کارکرد:} این مفسر خروجی خام مدل را گرفته و به رشته‌ی متنی نهایی (\lr{string}) تبدیل می‌کند. به‌عبارتی، خروجی \lr{JSON} یا ساختار‌یافته‌ی مدل را ساده کرده و فقط متن ترجمه را برمی‌گرداند.
+    \end{itemize}
+
+    \item \textbf{ساخت زنجیره‌ی پردازش (\lr{chain})}
+    \begin{latin}
+        \begin{lstlisting}[language=Python]
+vision_chain = prompt | LLM_model | parser
+        \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \textbf{کارکرد:} با استفاده از اپراتور \lr{pipe} (\lr{|}) در \lr{LangChain}، سه جزء را به‌صورت مرحله‌به‌مرحله به هم وصل می‌کند: \lr{prompt} (قالب ورودی)، \lr{LLM\_model} (مدل زبانی)، و \lr{parser} (مفسر خروجی).
+        \item \textbf{نتیجه:} \lr{vision\_chain} یک زنجیره‌ی کامل است که با دریافت یک متن فارسی، ترجمه‌ی انگلیسیِ نهایی را برمی‌گرداند.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{۵. بارگذاری و پردازش داده‌های متنی}
+
+بخش اصلی اسکریپت که فایل ورودی \lr{CSV} را مشخص کرده و فرآیند دو مرحله‌ای پردازش را آغاز می‌کند:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if __name__ == "__main__":
+    # Step 1: Input file (contains Persian + English)
+    input_csv = "./content/text_dataset/text_data.csv"
+    
+    # Step 2: Prepare final English-only CSV
+    final_csv = prepare_final_csv(input_csv, text_column="text", workers=2)
+    
+    # Step 3: Generate and store embeddings in Weaviate
+    process_texts(final_csv)
+    weaviate_client.close()
+\end{lstlisting}
+\end{latin}
+
+فرآیند پردازش داده‌های متنی در دو مرحله انجام می‌شود:
+\begin{enumerate}
+    \item \textbf{مرحله اول: ترجمه متون به انگلیسی:} تمام داده‌های متنی (فارسی و انگلیسی) پردازش شده و تمام داده‌ها به انگلیسی ترجمه می‌شوند.
+    \item \textbf{مرحله دوم: تولید \lr{embedding} و ذخیره در دیتابیس:} برای داده‌های انگلیسی تولید شده، \lr{embedding} محاسبه شده و در دیتابیس \lr{Weaviate} ذخیره می‌شود.
+\end{enumerate}
+
+
+\paragraph{مرحله اول: ترجمه متون به انگلیسی}
+\label{par:prepare-final-csv-intro}
+
+با استفاده از تابع \lr{prepare\_final\_csv} تمام داده‌ها را به انگلیسی ترجمه می‌کنیم. اگر متن انگلیسی باشد نیاز به ترجمه نیست، اما اگر فارسی باشد ابتدا با استفاده از \lr{LLM} آن را ترجمه می‌کنیم.
+
+تابع \lr{prepare\_final\_csv()} سه ورودی (پارامتر) می‌گیرد:
+\begin{enumerate}
+    \item \lr{input\_csv}: مسیر فایل \lr{CSV} ورودی (حاوی متن‌ها، فارسی و انگلیسی).
+    \item \lr{text\_column="text"}: نام ستونی از \lr{CSV} که متن‌ها در آن قرار دارند.
+    \item \lr{workers=2}: تعداد (\lr{threads}) یا پردازنده‌های موازی برای سرعت‌دهی به پردازش.
+\end{enumerate}
+خروجی این تابع یک فایل \lr{CSV} جدید خواهد بود که در آن تمام داده‌ها به انگلیسی ترجمه شده‌اند.
+
+\paragraph{توضیح تابع \lr{prepare\_final\_csv}}
+
+این تابع با استفاده از \lr{LLM} متون فارسی را ترجمه می‌کند و در نهایت یک فایل \lr{CSV} جدید حاوی تمام متون ترجمه شده به زبان انگلیسی تولید می‌کند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def prepare_final_csv(
+    input_csv: str, text_column="text", translated_column="translated", workers=2
+):
+    """
+    Process a CSV file where each row can be Persian or English.
+    - English rows are added directly to final.csv
+    - Persian rows are translated and also added to the same 'text' column
+    """
+    if not os.path.isfile(input_csv):
+        raise FileNotFoundError(f"File '{input_csv}' does not exist.")
+    
+    df = pd.read_csv(input_csv)
+    
+    if text_column not in df.columns:
+        raise ValueError(
+            f"Column '{text_column}' does not exist in the file. Columns: {df.columns.tolist()}"
+        )
+    
+    # Split English and Persian rows
+    english_rows = df[~df[text_column].apply(is_persian)]
+    persian_rows = df[df[text_column].apply(is_persian)]
+    
+    # Paths
+    folder, filename = os.path.split(input_csv)
+    name, ext = os.path.splitext(filename)
+    final_csv = os.path.join(folder, f"{name}_final.csv")
+    temp_csv = os.path.join(folder, f"{name}_temp.csv")
+    
+    # Save English rows directly to final.csv
+    english_rows[[text_column]].to_csv(final_csv, index=False, encoding="utf-8-sig")
+    
+    if persian_rows.empty:
+        print("No Persian text found. Final file saved.")
+        return final_csv
+    
+    # Save Persian rows to temp.csv for translation
+    persian_rows[[text_column]].to_csv(temp_csv, index=False, encoding="utf-8-sig")
+    
+    # Translate Persian rows
+    translated_csv = translate_csv(temp_csv, text_column=text_column, workers=workers)
+    
+    # Load translated text
+    translated_df = pd.read_csv(translated_csv)
+    
+    # We only need the translated text under the same column name 'text'
+    translated_text = translated_df[[translated_column]].rename(
+        columns={translated_column: text_column}
+    )
+    
+    # Combine English + translated rows (all under one column 'text')
+    final_df = pd.concat(
+        [english_rows[[text_column]], translated_text], ignore_index=True
+    )
+    
+    # Save final CSV (only one column: 'text')
+    final_df.to_csv(final_csv, index=False, encoding="utf-8-sig")
+    
+    # Clean up
+    os.remove(temp_csv)
+    os.remove(translated_csv)
+    
+    print(f"✅ Final CSV prepared (single 'text' column): {final_csv}")
+    return final_csv
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد \lr{prepare\_final\_csv}}
+
+\begin{enumerate}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+def prepare_final_csv(
+    input_csv: str, text_column="text", translated_column="translated", workers=2
+):
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{input\_csv}: مسیر فایل \lr{CSV} ورودی.
+        \item \lr{text\_column}: نام ستونی که متن‌ها در آن هستند (پیش‌فرض \lr{"text"}).
+        \item \lr{translated\_column}: نام ستونی که متن ترجمه‌شده بعداً در آن ذخیره می‌شود (پیش‌فرض \lr{"translated"}).
+        \item \lr{workers}: تعداد رشته‌های موازی برای ترجمه (پیش‌فرض ۲).
+    \end{itemize}
+
+    \item \textbf{بررسی وجود فایل:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if not os.path.isfile(input_csv):
+    raise FileNotFoundError(f"File '{input_csv}' does not exist.")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر فایل ورودی وجود نداشته باشد، خطا می‌دهد و برنامه متوقف می‌شود.
+    \end{itemize}
+
+    \item \textbf{خواندن فایل \lr{CSV}:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+df = pd.read_csv(input_csv)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل \lr{CSV} را با \lr{pandas} می‌خواند و آن را در \lr{DataFrame} ذخیره می‌کند.
+    \end{itemize}
+
+    \item \textbf{بررسی وجود ستون متن:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if text_column not in df.columns:
+    raise ValueError(
+        f"Column '{text_column}' does not exist in the file. Columns: {df.columns.tolist()}"
+    )
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item بررسی می‌کند که آیا ستونی با نام \lr{"text"} در فایل وجود دارد یا نه؛ اگر نه، خطا می‌دهد.
+    \end{itemize}
+
+    \item \textbf{جدا کردن سطرهای فارسی و انگلیسی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+english_rows = df[~df[text_column].apply(is_persian)]
+persian_rows = df[df[text_column].apply(is_persian)]
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item تابع \lr{is\_persian()} برای هر سطر بررسی می‌کند که آیا متن فارسی است یا نه.
+        \item سطرهای انگلیسی در \lr{english\_rows} و سطرهای فارسی در \lr{persian\_rows} ذخیره می‌شوند.
+    \end{itemize}
+
+    \item \textbf{تعریف مسیر فایل‌های خروجی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+folder, filename = os.path.split(input_csv)
+name, ext = os.path.splitext(filename)
+final_csv = os.path.join(folder, f"{name}_final.csv")
+temp_csv = os.path.join(folder, f"{name}_temp.csv")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item مسیر فایل ورودی را تجزیه می‌کند و مسیر فایل‌های موقت و نهایی را می‌سازد: \lr{*\_temp.csv} (شامل فقط سطرهای فارسی برای ترجمه) و \lr{*\_final.csv} (شامل خروجی نهایی انگلیسی).
+    \end{itemize}
+
+    \item \textbf{ذخیره‌ی مستقیم سطرهای انگلیسی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+english_rows[[text_column]].to_csv(final_csv, index=False, encoding="utf-8-sig")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item سطرهای انگلیسی بدون تغییر مستقیماً در فایل نهایی ذخیره می‌شوند.
+    \end{itemize}
+
+    \item \textbf{در صورت نبود متن فارسی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if persian_rows.empty:
+    print("No Persian text found. Final file saved.")
+    return final_csv
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر در داده‌ها هیچ متن فارسی نباشد، مستقیماً فایل نهایی را برمی‌گرداند.
+    \end{itemize}
+
+    \item \textbf{ذخیره‌ی سطرهای فارسی برای ترجمه:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+persian_rows[[text_column]].to_csv(temp_csv, index=False, encoding="utf-8-sig")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item تمام سطرهای فارسی را در یک فایل موقت (\lr{temp\_csv}) ذخیره می‌کند تا برای ترجمه استفاده شود.
+    \end{itemize}
+
+    \item \textbf{ترجمه‌ی متون فارسی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+translated_csv = translate_csv(temp_csv, text_column=text_column, workers=workers)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل موقت فارسی را با تابع \lr{translate\_csv()} ترجمه می‌کند. این تابع به‌صورت موازی (\lr{workers=2}) اجرا می‌شود و خروجی را به‌صورت \lr{CSV} برمی‌گرداند.
+    \end{itemize}
+
+    \item \textbf{خواندن خروجی ترجمه:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+translated_df = pd.read_csv(translated_csv)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل ترجمه‌شده را می‌خواند و در \lr{DataFrame} جدید ذخیره می‌کند.
+    \end{itemize}
+
+    \item \textbf{تغییر نام ستون ترجمه به \lr{"text"}:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+translated_text = translated_df[[translated_column]].rename(
+    columns={translated_column: text_column}
+)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item برای یک‌دست شدن، ستون \lr{"translated"} را به \lr{"text"} تغییر نام می‌دهد تا با سطرهای انگلیسی هماهنگ شود.
+    \end{itemize}
+
+    \item \textbf{ترکیب داده‌های انگلیسی و ترجمه‌شده:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+final_df = pd.concat(
+    [english_rows[[text_column]], translated_text], ignore_index=True
+)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item هر دو مجموعه (انگلیسی و ترجمه‌شده) را زیر هم در یک \lr{DataFrame} ادغام می‌کند.
+    \end{itemize}
+
+    \item \textbf{ذخیره‌ی فایل نهایی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+final_df.to_csv(final_csv, index=False, encoding="utf-8-sig")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item همه‌ی متن‌ها (الان همه انگلیسی هستند) را در یک فایل \lr{CSV} نهایی ذخیره می‌کند.
+    \end{itemize}
+
+    \item \textbf{حذف فایل‌های موقت:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+os.remove(temp_csv)
+os.remove(translated_csv)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل‌های موقتی (فارسی و ترجمه‌شده) را برای تمیزی محیط حذف می‌کند.
+    \end{itemize}
+
+    \item \textbf{پیام نهایی و بازگرداندن مسیر:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+print(f"✅ Final CSV prepared (single 'text' column): {final_csv}")
+return final_csv
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item آدرس فایل نهایی را چاپ و برمی‌گرداند.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{تابع \lr{is\_persian} برای تشخیص متون فارسی}
+
+این تابع با استفاده از عبارت منظم (\lr{Regex}) بررسی می‌کند که آیا حداقل یک کاراکتر فارسی در متن وجود دارد یا خیر.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def is_persian(text: str) -> bool:
+    """Return True if the text contains at least one Persian character."""
+    if not text or not isinstance(text, str):
+        return False
+    return bool(re.search(r"[\u0600-\u06FF]", text))
+\end{lstlisting}
+\end{latin}
+\textbf{منطق:} این تابع با استفاده از عبارت منظم (\lr{re.search(r"[\textbackslash u0600-\textbackslash u06FF]", text)}
+) بررسی می‌کند که آیا حداقل یک کاراکتر در محدوده‌ی یونیکد کاراکترهای فارسی و عربی (\lr{0x0600} تا \lr{0x06FF}) در متن وجود دارد یا خیر. در صورت مثبت بودن، مقدار \lr{True} بازگردانده می‌شود.
+\begin{itemize}
+    \item از ماژول \lr{re} (عبارت منظم) استفاده می‌کند.
+    \item الگوی \lr{r"[\textbackslash u0600-\textbackslash u06FF]"}:
+    \begin{enumerate}
+        \item محدوده‌ی یونیکد کاراکترهای فارسی و عربی (از \lr{0x0600} تا \lr{0x06FF}) را مشخص می‌کند.
+        \item یعنی اگر حداقل یک کاراکتر در این محدوده وجود داشته باشد، تطبیق پیدا می‌کند.
+    \end{enumerate}
+    \item \lr{re.search()}: اولین تطبیق را پیدا می‌کند و اگر باشد، شیء \lr{match} برمی‌گرداند.
+    \item \lr{bool(...)}: تبدیل نتیجه به \lr{True} یا \lr{False}.
+\end{itemize}
+
+\paragraph{تابع \lr{translate\_csv} برای ترجمه‌ی موازی}
+
+این تابع مسئول ترجمه‌ی متون یک ستون مشخص از فایل \lr{CSV} به صورت موازی است و خروجی را در یک فایل جدید (\lr{<original\_name>\_translated.csv}) ذخیره می‌کند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def translate_csv(input_csv: str, text_column="text", workers=4):
+    """
+    Takes a CSV file, translates the specified text column,
+    and saves the output in the same folder as the input file with
+    the name <original_name>_translated.csv.
+    """
+    if not os.path.isfile(input_csv):
+        raise FileNotFoundError(f"File '{input_csv}' does not exist.")
+
+    df = pd.read_csv(input_csv)
+
+    if text_column not in df.columns:
+        raise ValueError(
+            f"Column '{text_column}' does not exist in the file. Columns: {df.columns.tolist()}"
+        )
+
+    texts = df[text_column].fillna("").astype(str).tolist()
+    results = [""] * len(texts)
+
+    # Use ThreadPoolExecutor to speed up translation (optional)
+    if workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = {
+                ex.submit(translate_text, texts[i]): i for i in range(len(texts))
+            }
+            for fut in tqdm(
+                as_completed(futures), total=len(futures), desc="Translating"
+            ):
+                idx = futures[fut]
+                try:
+                    results[idx] = fut.result()
+                except Exception as e:
+                    print(f"⚠️ Error at index {idx}: {e}")
+                    results[idx] = ""
+    else:
+        for i, t in enumerate(tqdm(texts, desc="Translating")):
+            results[i] = translate_text(t)
+
+    df["translated"] = results
+
+    # Save output file in the same folder as the input file
+    folder, filename = os.path.split(input_csv)
+    name, ext = os.path.splitext(filename)
+    output_csv = os.path.join(folder, f"{name}_translated{ext}")
+
+    df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+    print(f"✅ Translation complete. Saved to {output_csv}")
+    return output_csv
+\end{lstlisting}
+\end{latin}
+\textbf{توضیح:} این تابع از \lr{ThreadPoolExecutor} برای اجرای موازی تابع \lr{translate\_text} بر روی متون استفاده می‌کند تا سرعت فرآیند ترجمه افزایش یابد. نوار پیشرفت (\lr{tqdm}) نیز برای نمایش وضعیت ترجمه استفاده می‌شود.
+
+\paragraph{توضیح کد \lr{translate\_csv}}
+
+\begin{enumerate}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+def translate_csv(input_csv: str, text_column="text", workers=4):
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{input\_csv}: مسیر فایل \lr{CSV} ورودی.
+        \item \lr{text\_column}: نام ستونی که متن‌ها در آن قرار دارند (پیش‌فرض \lr{"text"}).
+        \item \lr{workers}: تعداد رشته‌های موازی (\lr{threads}) برای ترجمه (پیش‌فرض ۴).
+    \end{itemize}
+
+    \item \textbf{بررسی وجود فایل:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if not os.path.isfile(input_csv):
+    raise FileNotFoundError(f"File '{input_csv}' does not exist.")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر فایل ورودی وجود نداشته باشد، خطا می‌دهد.
+    \end{itemize}
+
+    \item \textbf{خواندن فایل \lr{CSV}:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+df = pd.read_csv(input_csv)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل \lr{CSV} را با \lr{pandas} خوانده و در یک \lr{DataFrame} ذخیره می‌کند.
+    \end{itemize}
+
+    \item \textbf{بررسی وجود ستون متن:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if text_column not in df.columns:
+    raise ValueError(
+        f"Column '{text_column}' does not exist in the file. Columns: {df.columns.tolist()}"
+    )
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item مطمئن می‌شود ستونی که قرار است ترجمه شود در فایل وجود داشته باشد؛ در غیر این صورت خطا می‌دهد.
+    \end{itemize}
+
+    \item \textbf{آماده‌سازی متن‌ها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+texts = df[text_column].fillna("").astype(str).tolist()
+results = [""] * len(texts)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{texts}: تمام مقادیر ستون متن را به رشته تبدیل کرده و جای مقادیر خالی (\lr{NaN}) را با رشته خالی پر می‌کند.
+        \item \lr{results}: آرایه‌ای برای ذخیره‌ی نتایج ترجمه، هم‌اندازه با تعداد سطرها.
+    \end{itemize}
+
+    \item \textbf{ترجمه موازی (با \lr{ThreadPoolExecutor}):}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if workers > 1:
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {
+            ex.submit(translate_text, texts[i]): i for i in range(len(texts))
+        }
+        for fut in tqdm(
+            as_completed(futures), total=len(futures), desc="Translating"
+        ):
+            idx = futures[fut]
+            try:
+                results[idx] = fut.result()
+            except Exception as e:
+                print(f"⚠️ Error at index {idx}: {e}")
+                results[idx] = ""
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر تعداد \lr{workers} بیشتر از ۱ باشد، ترجمه به صورت موازی انجام می‌شود.
+        \item هر متن به یک \lr{thread} فرستاده می‌شود (\lr{translate\_text}).
+        \item \lr{tqdm} برای نمایش نوار پیشرفت استفاده شده است.
+        \item در صورت بروز خطا، رشته خالی جایگزین می‌شود و پیام خطا چاپ می‌شود.
+    \end{itemize}
+
+    \item \textbf{ترجمه تک‌نخی (بدون موازی):}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+else:
+    for i, t in enumerate(tqdm(texts, desc="Translating")):
+        results[i] = translate_text(t)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر \lr{workers=1} باشد، ترجمه به صورت تک‌نخی انجام می‌شود، ولی باز هم نوار پیشرفت نشان داده می‌شود.
+    \end{itemize}
+
+    \item \textbf{اضافه کردن ستون ترجمه:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+df["translated"] = results
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item ستون جدید \lr{"translated"} به \lr{DataFrame} اضافه می‌شود و نتایج ترجمه در آن قرار می‌گیرند.
+    \end{itemize}
+
+    \item \textbf{تعیین مسیر فایل خروجی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+folder, filename = os.path.split(input_csv)
+name, ext = os.path.splitext(filename)
+output_csv = os.path.join(folder, f"{name}_translated{ext}")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item مسیر پوشه و نام فایل ورودی استخراج می‌شود.
+        \item مسیر فایل خروجی به صورت \lr{<original\_name>\_translated.csv} ساخته می‌شود.
+    \end{itemize}
+
+    \item \textbf{ذخیره \lr{CSV} ترجمه شده:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+df.to_csv(output_csv, index=False, encoding="utf-8-sig")
+print(f"✅ Translation complete. Saved to {output_csv}")
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{DataFrame} شامل متن اصلی و ترجمه در فایل جدید ذخیره می‌شود.
+        \item پیام موفقیت چاپ می‌شود.
+    \end{itemize}
+
+    \item \textbf{بازگرداندن مسیر فایل خروجی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+return output_csv
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item مسیر فایل \lr{CSV} ترجمه‌شده را برمی‌گرداند.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{تابع \lr{translate\_text} برای ترجمه‌ی یک آیتم متنی}
+
+این تابع مسئول ترجمه‌ی یک رشته‌ی متنی با استفاده از زنجیره‌ی \lr{vision\_chain} و مدیریت خطاهای احتمالی از طریق تلاش مجدد (\lr{retries}) است.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def translate_text(text: str, retries=2, pause=1.0) -> str:
+    # ---------- Translate a single text ----------
+    if not isinstance(text, str) or not text.strip():
+        return ""
+    
+    prompt_input = {"text": text}
+    
+    attempt = 0
+    while attempt <= retries:
+        try:
+            translated = vision_chain.invoke(prompt_input)
+            return translated.strip()
+        except Exception as e:
+            attempt += 1
+            print(f"⚠️ Translation error (attempt {attempt}): {e}")
+            if attempt > retries:
+                return ""
+            time.sleep(pause * attempt)
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد \lr{translate\_text}}
+
+\begin{enumerate}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+def translate_text(text: str, retries=2, pause=1.0) -> str:
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{text}: رشته‌ای که قرار است ترجمه شود.
+        \item \lr{retries}: تعداد دفعات تلاش مجدد در صورت خطا (پیش‌فرض ۲).
+        \item \lr{pause}: مدت زمان مکث بین تلاش‌ها بر حسب ثانیه (پیش‌فرض 1 ثانیه).
+        \item \textbf{خروجی:} رشته‌ی ترجمه‌شده (\lr{str}).
+    \end{itemize}
+
+    \item \textbf{آماده‌سازی ورودی برای زنجیره ترجمه:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+prompt_input = {"text": text}
+translated = vision_chain.invoke(prompt_input)
+return translated.strip()
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item متن ورودی در یک دیکشنری با کلید \lr{"text"} قرار داده می‌شود.
+        \item \lr{vision\_chain.invoke(prompt\_input)}: متن را به زنجیره‌ی ترجمه می‌دهد و ترجمه نهایی را می‌گیرد.
+        \item در صورت موفقیت، متن ترجمه‌شده را با \lr{.strip()} برمی‌گرداند (حذف فاصله‌های اضافی).
+    \end{itemize}
+
+    \item \textbf{مدیریت خطا و تلاش مجدد:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+except Exception as e:
+    attempt += 1
+    print(f"⚠️ Translation error (attempt {attempt}): {e}")
+    if attempt > retries:
+        return ""
+    time.sleep(pause * attempt)
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item اگر خطایی رخ دهد (مانند قطع اتصال \lr{API} یا خطای مدل):
+        \begin{enumerate}
+            \item تعداد تلاش‌ها افزایش می‌یابد (\lr{attempt += 1}).
+            \item پیام خطا چاپ می‌شود.
+            \item اگر تعداد تلاش‌ها بیشتر از مقدار \lr{retries} باشد $\to$ رشته خالی برگردانده می‌شود.
+            \item قبل از تلاش مجدد، تابع به مدت \lr{pause * attempt} ثانیه مکث می‌کند (استراتژی افزایش فاصله بین تلاش‌ها).
+        \end{enumerate}
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{خلاصه‌ی مرحله اول}
+
+حال مرحله ۱ به پایان می‌رسد و در پایان این مرحله ما دارای یک فایل \lr{CSV} جدید هستیم که تمام داده‌های آن به انگلیسی ترجمه شده‌اند. این فایل در همان پوشه‌ای قرار دارد که فایل \lr{CSV} اصلی قرار داشت.
+
+
+\paragraph{مرحله دوم: تولید \lr{Embedding} و ذخیره در \lr{Weaviate}}
+
+پس از اتمام مرحله اول، فایل \lr{CSV} نهایی حاوی متون انگلیسی آماده شده است. خط زیر مسئول شروع مرحله دوم است:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+process_texts(final_csv)
+\end{lstlisting}
+\end{latin}
+این دستور تابع \lr{process\_texts} را با مسیر فایل \lr{CSV} نهایی (\lr{final\_csv}) فراخوانی می‌کند.
+
+\paragraph{تابع \lr{process\_texts}}
+
+این تابع مسئول اجرای موازی تولید \lr{embedding} و ذخیره‌ی آیتم‌های متنی در دیتابیس است.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def process_texts(input_csv: str, max_workers: int = 8):
+    """Process and store text embeddings in parallel."""
+    df = pd.read_csv(input_csv)
+    texts = df["text"].astype(str).tolist()
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(store_text_item, f"text_{i+1}", text)
+            for i, text in enumerate(texts)
+        ]
+        for _ in tqdm(
+            as_completed(futures), total=len(futures), desc="�� Processing texts"
+        ):
+            pass
+    
+    print(f"✅ Processed {len(texts)} text items.")
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد \lr{process\_texts}}
+
+\begin{enumerate}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+def process_texts(input_csv: str, max_workers: int = 8):
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item \lr{input\_csv}: مسیر فایل \lr{CSV} ورودی که شامل ستون \lr{"text"} است.
+        \item \lr{max\_workers}: حداکثر تعداد رشته‌های موازی (\lr{threads}) برای پردازش متون (پیش‌فرض ۸).
+    \end{itemize}
+
+    \item \textbf{خواندن فایل \lr{CSV} و آماده‌سازی متن‌ها:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+df = pd.read_csv(input_csv)
+texts = df["text"].astype(str).tolist()
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item فایل \lr{CSV} ورودی را با \lr{pandas} می‌خواند.
+        \item ستون \lr{"text"} را به رشته تبدیل و به لیست متن‌ها (\lr{texts}) تبدیل می‌کند.
+    \end{itemize}
+
+    \item \textbf{اجرای پردازش موازی:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    futures = [
+        executor.submit(store_text_item, f"text_{i+1}", text)
+        for i, text in enumerate(texts)
+    ]
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item از \lr{ThreadPoolExecutor} برای اجرای همزمان چند عملیات استفاده می‌شود.
+        \item برای هر متن، تابع \lr{store\_text\_item()} فراخوانی می‌شود.
+        \item به هر متن یک شناسه یکتا (\lr{text\_1, text\_2, \dots}) داده می‌شود.
+        \item هر فراخوانی به \lr{executor.submit()} داده می‌شود تا در یک رشته‌ی مجزا اجرا شود.
+        \item نتیجه‌ها در \lr{futures} ذخیره می‌شوند (لیست \lr{future objects}).
+    \end{itemize}
+
+    \item \textbf{نمایش پیشرفت:}
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+for _ in tqdm(
+    as_completed(futures), total=len(futures), desc="�� Processing texts"
+):
+    pass
+    \end{lstlisting}
+    \end{latin}
+    \begin{itemize}
+        \item حلقه بر روی \lr{as\_completed(futures)} می‌چرخد تا منتظر بماند تمام وظایف موازی تکمیل شوند.
+        \item \lr{tqdm} برای نمایش نوار پیشرفت استفاده شده است.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{تابع \lr{store\_text\_item}}
+
+این تابع عملیات تولید \lr{embedding} برای یک متن و ذخیره‌ی آن همراه با متادیتا در دیتابیس \lr{Weaviate} را انجام می‌دهد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def store_text_item(item_id: str, text_data: str):
+    """Store text embedding and metadata in Weaviate."""
+    embedding = get_embedding("text", text_data)
+    properties = {
+        "contentId": item_id,
+        "modality": "text",
+        "filePath": "",
+        "content": text_data,
+    }
+    collection.data.insert(properties=properties, vector=embedding.tolist())
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد \lr{store\_text\_item}}
+\begin{itemize}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{itemize}
+        \item \lr{item\_id}: شناسه یکتا برای متن (مثلاً \lr{"text\_1"}).
+        \item \lr{text\_data}: خود متن مورد نظر برای پردازش.
+    \end{itemize}
+
+    \item \textbf{تولید \lr{embedding}:}
+    \begin{itemize}
+        \item \lr{embedding = get\_embedding("text", text\_data)}: بردار عددی (\lr{embedding}) متن را تولید می‌کند.
+        \item این بردار، نمایش معنایی متن در فضای چندبعدی است و برای جستجوی معنایی و بازیابی متون استفاده می‌شود.
+    \end{itemize}
+
+    \item \textbf{آماده‌سازی متادیتا:}
+    \begin{itemize}
+        \item دیکشنری \lr{properties} شامل اطلاعات جانبی است که همراه \lr{embedding} ذخیره می‌شود: \lr{contentId} (شناسه یکتا)، \lr{modality} (نوع داده)، \lr{filePath} (مسیر فایل منبع، که در اینجا خالی است) و \lr{content} (خود متن).
+    \end{itemize}
+
+    \item \textbf{ذخیره در \lr{Weaviate}:}
+    \begin{itemize}
+        \item \lr{collection.data.insert()}: داده را در \lr{collection} مشخص در \lr{Weaviate} ذخیره می‌کند.
+        \item پارامتر \lr{properties}: متادیتای متن.
+        \item پارامتر \lr{vector}: بردار \lr{embedding} متن (که با \lr{.tolist()} به لیست تبدیل می‌شود تا قابل ذخیره باشد).
+    \end{itemize}
+\end{itemize}
+
+\paragraph{۵- تابع \lr{get\_embedding}}
+
+این تابع مسئول تولید بردار \lr{embedding} نرمالایز شده توسط مدل \lr{CLIP} برای یک داده‌ی متنی است.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def get_embedding(modality: str, input_data: Union[str, None]) -> np.ndarray:
+    """Wrapper for modality-specific embedding."""
+    mod = modality.lower()
+    if mod == "text":
+        """Return normalized CLIP text embedding."""
+        if not isinstance(input_data, str):
+            raise ValueError("`text` must be a string.")
+        
+        tokens = tokenizer([input_data]).to(DEVICE)
+        with torch.no_grad():
+            features = clip_model.encode_text(tokens)
+            features = features / features.norm(dim=-1, keepdim=True)
+        return features.detach().cpu().numpy().reshape(-1)
+    else:
+        raise ValueError("`modality` must be 'text'.")
+\end{lstlisting}
+\end{latin}
+
+\paragraph{توضیح کد \lr{get\_embedding}}
+\begin{itemize}
+    \item \textbf{تعریف تابع و پارامترها:}
+    \begin{itemize}
+        \item \lr{modality}: نوع داده.
+        \item \lr{input\_data}: داده ورودی برای تولید \lr{embedding} 
+        \item \textbf{خروجی:} آرایه‌ی \lr{NumPy} (\lr{np.ndarray}) که بردار عددی متن را باز می‌گرداند.
+    \end{itemize}
+
+    \item \textbf{توکنایز کردن متن:}
+    \begin{itemize}
+        \item \lr{tokens = tokenizer([input\_data]).to(DEVICE)}: متن را با \lr{tokenizer} مدل \lr{CLIP} به توکن تبدیل کرده و به دستگاه مناسب (\lr{cuda} یا \lr{cpu}) منتقل می‌کند.
+    \end{itemize}
+
+    \item \textbf{تولید \lr{embedding} با مدل \lr{CLIP}:}
+    \begin{itemize}
+        \item \lr{with torch.no\_grad()}: جلوگیری از ذخیره‌سازی گرادیان‌ها برای صرفه‌جویی در حافظه و زمان.
+        \item \lr{features = clip\_model.encode\_text(tokens)}: تولید بردار عددی متن (\lr{text embedding}) با مدل \lr{CLIP}.
+        \item \lr{features = features / features.norm(dim=-1, keepdim=True)}: نرمال‌سازی بردار (طول بردار برابر ۱ می‌شود).
+    \end{itemize}
+
+    \item \textbf{بازگرداندن خروجی به \lr{NumPy}:}
+    \begin{itemize}
+        \item \lr{features.detach().cpu().numpy().reshape(-1)}:
+        \begin{enumerate}
+            \item \lr{detach()}: جدا کردن از گراف محاسباتی \lr{PyTorch}.
+            \item \lr{cpu()}: انتقال به حافظه \lr{CPU}.
+            \item \lr{numpy()}: تبدیل به آرایه \lr{NumPy}.
+            \item \lr{reshape(-1)}: تبدیل به بردار یک‌بُعدی.
+        \end{enumerate}
+    \end{itemize}
+\end{itemize}
+
+
+\section{بخش بک اند اصلی}
+کد اصلی بک اند داخل پوشه server قرار دارد
+در زیربخش های بعدی به توضیح فایل‌های موجود رد پوشه server و عملکرد آنها پرداخته خواهدشد
+
+\subsection{فایل \lr{config.py}}
+
+قبل از آغاز عملیات اجرایی، لازم است فایل \lr{config.py} واقع در پوشه‌ی \lr{server} بررسی و در صورت لزوم تنظیم گردد.
+
+این فایل شامل مجموعه‌ای از تنظیمات اولیه و پیکربندی‌ها برای تعیین مسیر فایل‌ها و مشخص نمودن انواع مدل‌های مورد استفاده در پروژه است. در صورتی که روال‌های تعیین‌شده در بخش‌های پیشین پروژه به دقت دنبال شده باشد، نیازی به اعمال تغییرات در این مسیرها و تنظیمات نخواهد بود. در غیر این صورت، موارد درخواستی باید توسط کاربر تنظیم و به‌روزرسانی شوند.
+
+کد زیر، محتوای کامل فایل \lr{config.py} را نشان می‌دهد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+import os
+import torch
+from dotenv import load_dotenv
+from pathlib import Path
+
+PROJECT_ROOT_PATH = Path.cwd().as_posix()
+print(f"Project root path: {PROJECT_ROOT_PATH}")
+
+WEAVIATE_COLLECTION_NAME = "Multimodal_Collection"
+
+# === Load environment variables ===
+load_dotenv() # Looks for .env in current working directory or parents
+
+# === Device setup ===
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+# === CLIP Model Config ===
+CLIP_MODEL_NAME = "ViT-B-32"
+PRETRAINED_LOCAL_PATH = f"{PROJECT_ROOT_PATH}/open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+
+# === Whisper Model Config ===
+WHISPER_MODEL = "small"
+
+# === LLM Config ===
+LLM_MODEL_NAME = "openai/gpt-5-image-mini"
+LLM_API_BASE = "https://openrouter.ai/api/v1"
+LLM_API_KEY = os.getenv("LLM_API_KEY") # <- Loaded from .env
+
+if not LLM_API_KEY:
+  raise ValueError("❌ Missing LLM_API_KEY in .env file!")
+
+print("✅ Environment key loaded successfully!")
+\end{lstlisting}
+\end{latin}
+
+این قطعه کد به منظور پیکربندی (\lr{Configuration}) یک پروژه‌ی چند‌حالته (\lr{Multimodal}) طراحی شده است که بر مبنای مدل‌های زبان بزرگ (\lr{LLM}) و مدل‌های پردازش تصویر (مانند \lr{Multimodal RAG} یا چت‌بات چندحالته) عمل می‌کند.
+
+\subsubsection{مسیر ریشه پروژه}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+PROJECT_ROOT_PATH = Path.cwd().as_posix()
+print(f"Project root path: {PROJECT_ROOT_PATH}")
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{Path.cwd()}: مسیر جاری عملیاتی (\lr{Current Working Directory}) را بازیابی می‌نماید.
+    \item \lr{.as\_posix()}: مسیر را به فرم استاندارد یونیکس (\lr{/}) تبدیل می‌کند تا سازگاری آن در سیستم‌عامل‌های مختلف (ویندوز/لینوکس) تضمین گردد.
+\end{itemize}
+
+\subsubsection{نام کالکشن پایگاه داده \lr{Weaviate}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+WEAVIATE_COLLECTION_NAME = "Multimodal_Collection"
+\end{lstlisting}
+\end{latin}
+
+این نام برای کالکشنی است که داده‌های چندحالته (شامل متن، تصویر، صدا) در پایگاه داده \lr{Weaviate} در آن ذخیره می‌شوند و متناظر با همان \lr{collection} ایجاد شده در مراحل پیشین است.
+
+\subsubsection{بارگذاری متغیرهای محیطی از \lr{.env}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+load_dotenv()
+\end{lstlisting}
+\end{latin}
+
+این تابع به دنبال فایلی به نام \lr{.env} در پوشه‌ی جاری یا والد آن جستجو کرده و تمام متغیرهای محیطی تعریف‌شده در آن را وارد محیط اجرایی می‌کند. فایل مذکور در مراحل اولیه پروژه ایجاد و کلید \lr{API} لازم در آن تنظیم شده است.
+
+\subsubsection{تنظیم دستگاه اجرا (\lr{GPU} یا \lr{CPU})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item اگر سیستم مجهز به واحد پردازش گرافیکی (\lr{GPU}) با پشتیبانی از \lr{CUDA} باشد، از \lr{GPU} استفاده خواهد شد.
+    \item در غیر این صورت، عملیات بر روی واحد پردازش مرکزی (\lr{CPU}) انجام می‌پذیرد.
+\end{itemize}
+
+\subsubsection{پیکربندی مدل \lr{CLIP}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+CLIP_MODEL_NAME = "ViT-B-32"
+PRETRAINED_LOCAL_PATH = f"{PROJECT_ROOT_PATH}/open_clip_weights/ViT-B-32-openai/open_clip_model.safetensors"
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{CLIP\_MODEL\_NAME}: مدل \lr{CLIP} منتخب که در اینجا \lr{Vision Transformer} با اندازه‌ی \lr{Base} و اندازه‌ی پچ ۳۲ (\lr{ViT-B-32}) است.
+    \item \lr{PRETRAINED\_LOCAL\_PATH}: مسیر فایل وزن‌های از پیش‌آموزش‌دیده مدل است که به صورت محلی در پوشه‌ی پروژه ذخیره شده است. فایل \lr{open\_clip\_model.safetensors} حاوی وزن‌های از پیش‌آموزش‌دیده مدل است.
+    \item مدل \lr{CLIP} به منظور تبدیل تصویر و متن به یک فضای برداری مشترک استفاده می‌گردد.
+\end{itemize}
+
+\subsubsection{پیکربندی مدل \lr{Whisper}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+WHISPER_MODEL = "small"
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item این مدل از \lr{OpenAI} برای تبدیل گفتار به متن (\lr{Speech-to-Text}) به کار می‌رود.
+    \item مقدار \lr{WHISPER\_MODEL} می‌تواند یکی از مقادیر \lr{small}، \lr{medium} یا \lr{large} باشد.
+    \item مدل‌های \lr{medium} و \lr{large} برای بارگذاری روی \lr{CPU} مناسب نبوده و به \lr{GPU} نیاز دارند.
+    \item مدل \lr{small} برای بارگذاری روی \lr{CPU} مناسب است اما دقت کمتری نسبت به دو مدل دیگر دارد. این مدل برای داده‌های صوتی به زبان انگلیسی عملکرد مطلوبی دارد، اما برای زبان‌هایی غیر از انگلیسی (مانند فارسی) دارای عملکرد ضعیف‌تری است.
+\end{itemize}
+
+\subsubsection{پیکربندی مدل زبانی بزرگ (\lr{LLM})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+LLM_MODEL_NAME = "openai/gpt-5-image-mini"
+LLM_API_BASE = "https://openrouter.ai/api/v1"
+LLM_API_KEY = os.getenv("LLM_API_KEY")
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{LLM\_MODEL\_NAME}: مدل زبانی مورد استفاده است که در اینجا نسخه‌ی کوچک از \lr{GPT-5} با قابلیت پشتیبانی از تصویر می‌باشد.
+    \item \lr{LLM\_API\_BASE}: آدرس سرور \lr{OpenRouter} برای فراخوانی \lr{API} مدل‌ها.
+    \item \lr{LLM\_API\_KEY}: از فایل \lr{.env} خوانده می‌شود و برای احراز هویت \lr{API} الزامی است.
+\end{itemize}
+
+
+\subsection{فایل \lr{ai\_models.py}}
+
+در این پروژه، مدل \lr{CLIP} برای تولید بردارهای جاسازی (\lr{embedding}) و مدل \lr{Whisper} برای تبدیل صوت به متن استفاده شده است.
+
+این دو مدل با استفاده از کد زیر بارگذاری شده‌اند. این کد در فایل \lr{ai\_models.py} واقع در پوشه‌ی \lr{server} قرار دارد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+import whisper
+import open_clip
+from .config import WHISPER_MODEL, CLIP_MODEL_NAME, PRETRAINED_LOCAL_PATH, DEVICE
+
+""" Whisper """
+whisper_model = whisper.load_model(WHISPER_MODEL, device=DEVICE)
+
+""" Open_CLIP """
+clip_model, _, preprocess = open_clip.create_model_and_transforms(
+  CLIP_MODEL_NAME, pretrained=PRETRAINED_LOCAL_PATH
+)
+tokenizer = open_clip.get_tokenizer(CLIP_MODEL_NAME)
+clip_model.to(DEVICE)
+clip_model.eval()
+\end{lstlisting}
+\end{latin}
+
+این قطعه کد وظیفه‌ی بارگذاری و آماده‌سازی مدل‌های چندحالته (صوت و تصویر) را برعهده دارد که در یک سیستم مبتنی بر بازیابی پیشرفته‌ی چندحالته (مانند \lr{Multimodal RAG Chatbot}) مورد استفاده قرار می‌گیرد. ساختار این فایل به‌گونه‌ای طراحی شده که مدل‌ها تنها یک‌بار بارگذاری شوند و در طول چرخه‌ی عمر پروژه آماده‌ی استفاده باشند.
+
+\subsubsection{بارگذاری مدل \lr{Whisper} (تبدیل گفتار به متن)}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+""" Whisper """
+whisper_model = whisper.load_model(WHISPER_MODEL, device=DEVICE)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{whisper.load\_model()}: مدل انتخاب‌شده (\lr{WHISPER\_MODEL}) را بارگذاری می‌کند (مانند \lr{small}، \lr{base}، \lr{medium}، \lr{large}).
+    \item پارامتر \lr{device=DEVICE} تضمین می‌کند که مدل بر روی واحد پردازش گرافیکی (\lr{GPU}) یا مرکزی (\lr{CPU}) مناسب تنظیم شود.
+    \item خروجی \lr{whisper\_model} یک شیء مدل است که قابلیت تبدیل ورودی صوتی به متن را فراهم می‌آورد.
+\end{itemize}
+
+\subsubsection{بارگذاری مدل \lr{CLIP} (درک تصویر و متن)}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+""" Open_CLIP """
+clip_model, _, preprocess = open_clip.create_model_and_transforms(
+    CLIP_MODEL_NAME, pretrained=PRETRAINED_LOCAL_PATH
+)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{open\_clip.create\_model\_and\_transforms()} سه مقدار را برمی‌گرداند:
+    \begin{enumerate}
+        \item مدل \lr{CLIP}: قابلیت تبدیل متن و تصویر به بردارهای مشترک در یک فضای برداری یکسان را دارد.
+        \item مدیریت کلاس‌ها (\lr{head}): که در اینجا با استفاده از \texttt{\_} نادیده گرفته شده است زیرا مورد استفاده‌ی مستقیم قرار نمی‌گیرد.
+        \item تابع \lr{preprocess}: برای پیش‌پردازش تصویر (\lr{resize}، \lr{normalization} و غیره) پیش از ورود به مدل استفاده می‌شود.
+    \end{enumerate}
+    \item پارامتر \lr{pretrained=PRETRAINED\_LOCAL\_PATH} باعث می‌شود وزن‌های مدل از فایل محلی (\lr{.safetensors}) بارگذاری شوند.
+\end{itemize}
+
+\subsubsection{بارگذاری \lr{Tokenizer} مدل \lr{CLIP}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+tokenizer = open_clip.get_tokenizer(CLIP_MODEL_NAME)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item توکنایزر (\lr{Tokenizer}) مسئول تبدیل متن به ورودی عددی (\lr{tokens}) قابل فهم برای مدل \lr{CLIP} است.
+    \item به عنوان مثال، برای توکن‌سازی یک متن: \lr{text = tokenizer(["a dog running in the park"])}.
+    \item در مدل \lr{CLIP}، متن و تصویر هر دو به یک فضای برداری مشترک نگاشت می‌شوند تا امکان اندازه‌گیری میزان شباهت معنایی بین آن‌ها فراهم گردد. 
+\end{itemize}
+
+\subsubsection{انتقال مدل به \lr{GPU} و حالت \lr{evaluation}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+clip_model.to(DEVICE)
+clip_model.eval()
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{.to(DEVICE)}: مدل را مطابق با پیکربندی موجود در فایل \lr{config} به \lr{GPU} یا \lr{CPU} منتقل می‌کند.
+    \item \lr{.eval()}: مدل را در حالت استنتاج (\lr{inference}) قرار می‌دهد، که منجر به:
+    \begin{itemize}
+        \item غیرفعال شدن مکانیسم‌هایی نظیر \lr{Dropout} و \lr{BatchNorm} می‌شود.
+        \item آماده‌سازی مدل صرفاً برای پیش‌بینی و نه برای فرآیند آموزش.
+    \end{itemize}
+\end{itemize}
+
+
+\subsection{فایل \lr{database.py}}
+
+برای بازیابی (\lr{retrieve}) فایل‌هایی که در مراحل پیشین به پایگاه داده (\lr{database}) وارد شده‌اند، لازم است که به نمونه‌ی ایجاد شده از پایگاه داده متصل شویم.
+
+کد زیر، که در فایل \lr{database.py} در پوشه‌ی \lr{server} قرار دارد، همین وظیفه را بر عهده دارد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+try:
+  weaviate_client = weaviate.connect_to_local()
+  print("✅ Connected to Weaviate")
+except Exception as e:
+  print(f"❌ Weaviate connection failed: {e}")
+  weaviate_client = None
+\end{lstlisting}
+\end{latin}
+
+\subsubsection{توضیح دقیق عملکرد}
+
+اتصال به \lr{Weaviate} محلی:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+weaviate_client = weaviate.connect_to_local()
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item این تابع تلاش می‌کند به نسخه‌ی محلی (\lr{local}) از پایگاه داده‌ی وکتوری \lr{Weaviate} که بر روی سیستم یا از طریق \lr{Docker} در حال اجرا است، متصل شود.
+    \item به‌صورت پیش‌فرض، آدرس اتصال \lr{http://localhost:8080} در نظر گرفته شده است.
+    \item در صورت موفقیت‌آمیز بودن اتصال، یک شیء کلاینت (\lr{client object}) برگردانده می‌شود که امکان تعامل با پایگاه داده را فراهم می‌سازد. 
+\end{itemize}
+
+
+\subsection{فایل \lr{main.py}}
+
+پیش از اجرای پروژه، لازم است اطمینان حاصل شود که داکر (\lr{Docker}) بر روی سیستم شما در حال اجرا است، زیرا اتصال به پایگاه داده (\lr{database}) مستلزم فعال بودن داکر است.
+
+برای اجرای پروژه، یک واسط خط فرمان (\lr{cmd}) باز کنید، به پوشه‌ی ریشه‌ی پروژه بروید و دستور زیر را اجرا نمایید:
+
+\begin{latin}
+\begin{lstlisting}
+python -m server.main
+\end{lstlisting}
+\end{latin}
+
+سپس، یک مرورگر وب باز کرده و به آدرس زیر مراجعه نمایید:
+
+\begin{latin}
+\begin{lstlisting}
+localhost:8000
+\end{lstlisting}
+\end{latin}
+
+با اجرای دستور \lr{python -m server.main}، فایل اصلی پروژه یعنی \lr{main.py} که در پوشه‌ی \lr{server} قرار دارد، اجرا می‌شود.
+
+\subsubsection{کد فایل \lr{main.py}}
+
+کد زیر، محتوای کامل فایل \lr{main.py} را نشان می‌دهد:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from .search_routes import router as search_router
+
+app = FastAPI(title="Multimodal RAG Chatbot")
+
+# CORS
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
+
+# Static mounts
+app.mount("/client", StaticFiles(directory="client"), name="client")
+app.mount("/content", StaticFiles(directory="content"), name="content")
+
+# Routes
+app.include_router(search_router)
+
+@app.get("/", response_class=HTMLResponse)
+async def home():
+  # Serve the index.html file properly
+  html_path = os.path.join("client", "index.html")
+  if os.path.exists(html_path):
+    with open(html_path, encoding="utf-8") as f:
+      return HTMLResponse(f.read())
+  else:
+    return HTMLResponse("<h1>Frontend not found</h1>", status_code=404)
+
+if __name__ == "__main__":
+  import uvicorn
+  uvicorn.run(app, host="0.0.0.0", port=8000)
+\end{lstlisting}
+\end{latin}
+
+\subsubsection{توضیح کد}
+
+\textbf{ساخت اپلیکیشن \lr{FastAPI}:}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+app = FastAPI(title="Multimodal RAG Chatbot")
+\end{lstlisting}
+\end{latin}
+یک شیء \lr{FastAPI} با عنوان مشخص‌شده ساخته می‌شود. این شیء نمایانگر کل برنامه‌ی وب (بک اِند) پروژه است.
+
+\textbf{تنظیم \lr{CORS}:}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["*"],
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
+\end{lstlisting}
+\end{latin}
+این بخش مجوزهای لازم را برای دسترسی همه‌ی درخواست‌ها (\lr{from any domain}) به \lr{API} فراهم می‌کند. جزئیات این تنظیمات به شرح زیر است:
+\begin{itemize}
+    \item \lr{allow\_origins=["*"]}: تمامی دامنه‌ها مجاز به ارسال درخواست هستند.
+    \item \lr{allow\_credentials=True}: ارسال کوکی‌ها در درخواست‌ها مجاز است.
+    \item \lr{allow\_methods=["*"]}: تمامی متدهای \lr{HTTP} (شامل \lr{GET}, \lr{POST}, و غیره) مجازند.
+    \item \lr{allow\_headers=["*"]}: تمامی سرآیندهای (\lr{headers}) ارسالی مجاز هستند.
+\end{itemize}
+
+\textbf{سرو فایل‌های استاتیک}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+app.mount("/client", StaticFiles(directory="client"), name="client")
+app.mount("/content", StaticFiles(directory="content"), name="content")
+\end{lstlisting}
+\end{latin}
+با استفاده از این دو خط، دو مسیر مجزا برای فایل‌های استاتیک تعریف شده است:
+\begin{itemize}
+    \item محتوای پوشه‌ی \lr{client} در مسیر \lr{/client} قابل دسترسی است.
+    \item محتوای پوشه‌ی \lr{content} در مسیر \lr{/content} قابل دسترسی است.
+\end{itemize}
+
+\textbf{افزودن مسیرهای دیگر از فایل جداگانه}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+app.include_router(search_router)
+\end{lstlisting}
+\end{latin}
+این دستور کلیه‌ی مسیرهای تعریف‌شده در فایل \lr{search\_routes.py} را به ساختار اصلی اپلیکیشن اضافه می‌کند.
+
+\textbf{تعریف مسیر اصلی (\lr{/})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+@app.get("/", response_class=HTMLResponse)
+async def home():
+  html_path = os.path.join("client", "index.html")
+  if os.path.exists(html_path):
+    with open(html_path, encoding="utf-8") as f:
+      return HTMLResponse(f.read())
+  else:
+    return HTMLResponse("<h1>Frontend not found</h1>", status_code=404)
+\end{lstlisting}
+\end{latin}
+در هنگام مراجعه‌ی کاربر به مسیر ریشه (\lr{/})، عملکرد به صورت زیر است:
+\begin{itemize}
+    \item برنامه به دنبال فایل \lr{client/index.html} می‌گردد.
+    \item اگر فایل مورد نظر یافت شود، محتوای آن به عنوان پاسخ \lr{HTML} بازگردانده و نمایش داده می‌شود.
+    \item در غیر این صورت، پیام خطای \lr{Frontend not found} به همراه کد وضعیت \lr{404} بازگردانده خواهد شد.
+\end{itemize}
+
+\textbf{اجرای برنامه با \lr{Uvicorn}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if __name__ == "__main__":
+  import uvicorn
+  uvicorn.run(app, host="0.0.0.0", port=8000)
+\end{lstlisting}
+\end{latin}
+این بلوک تضمین می‌کند که در صورت اجرای مستقیم فایل (\lr{python main.py}):
+\begin{itemize}
+    \item سرور \lr{FastAPI} توسط \lr{Uvicorn} اجرا گردد.
+    \item سرور بر روی تمامی \lr{IP}های محلی (\lr{0.0.0.0}) و پورت \lr{8000} در دسترس باشد. 
+\end{itemize}
+
+\subsubsection{قابلیت‌های جستجو و درخواست‌ها}
+
+پس از دسترسی به آدرس \lr{localhost:8000} در مرورگر، می‌توان درخواست‌هایی با ترکیب‌های چندحالته (\lr{multimodal}) زیر را به سیستم ارسال کرد. درخواست‌ها می‌توانند شامل هر ترکیبی از متن، صوت و تصویر باشند:
+
+\begin{enumerate}
+    \item فقط متن
+    \item فقط تصویر
+    \item فقط فایل صوتی
+    \item متن + تصویر
+    \item متن + فایل صوتی
+    \item تصویر + فایل صوتی
+    \item متن + تصویر + فایل صوتی
+\end{enumerate}
+
+\paragraph{توجه:}
+
+ورود تعداد زیادی فایل صوتی یا تصویری به طور همزمان توصیه نمی‌شود، هرچند محدودیتی در تعداد وجود ندارد. دلایل عدم توصیه به شرح زیر است:
+
+\begin{itemize}
+    \item این اقدام می‌تواند منجر به کاهش کارایی پاسخ‌دهی سیستم (\lr{response}) گردد (که جزئیات آن در ادامه بررسی خواهد شد).
+    \item تمام داده‌های تصویری به مدل زبان بزرگ (\lr{LLM}) ارسال می‌شوند. در صورت زیاد بودن حجم داده‌ها، احتمال اتمام توکن‌های مجاز برای استفاده‌ی رایگان از مدل وجود دارد و \lr{LLM} برای مدتی پاسخگو نخواهد بود.
+\end{itemize}
+
+
+\subsection{فایل \lr{search\_routes.py} و \lr{utils.py}}
+
+هنگامی که یک درخواست جستجو در بخش فرانت (\lr{Frontend}) ایجاد می‌شود، از طریق جاوا اسکریپت (\lr{JavaScript}) به مسیر \lr{API} زیر درخواست زده می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+@router.post("/multimodal")
+async def search_multimodal(
+    query: str = Form(default=""), files: List[UploadFile] = File(default=[])
+):
+\end{lstlisting}
+\end{latin}
+این تابع در فایل \lr{search\_routes.py} واقع در پوشه‌ی \lr{server} تعریف شده است.
+
+\subsubsection{توضیح کلی عملکرد مسیر \lr{/multimodal}}
+این مسیر یک درخواست چندمودال (\lr{multimodal}) را دریافت می‌کند (شامل متن و/یا فایل‌های آپلودشده مانند تصویر/صوت). ابتدا ورودی‌ها پردازش شده و به بردارهای جاسازی (\lr{embedding}) تبدیل می‌شوند. سپس یک بردار نهایی (تک یا میانگین بردارها) ساخته شده، با آن در پایگاه داده‌ی وکتوری (\lr{Vector Database}) جستجو انجام می‌شود. در نهایت، نتایج نرمال‌سازی شده، داده‌های لازم برای مدل زبان بزرگ (\lr{LLM}) آماده و به آن فرستاده می‌شود و پاسخ \lr{JSON} شامل نتایج بازیابی شده و خروجی \lr{LLM} به کلاینت بازگردانده می‌شود. در انتهای فرآیند، فایل‌های موقتی حذف می‌گردند.
+
+\subsubsection{بررسی گام‌به‌گام کد}
+
+\textbf{۱. امضای تابع و ورودی‌ها}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+@router.post("/multimodal")
+async def search_multimodal(
+    query: str = Form(default=""),
+    files: List[UploadFile] = File(default=[])
+):
+\end{lstlisting}
+\end{latin}
+\begin{itemize}
+    \item این یک مسیر \lr{POST} است که یک فیلد فرم \lr{query} (متن آزاد) و لیستی از فایل‌های آپلودشده (\lr{files}) را دریافت می‌کند.
+    \item \lr{UploadFile} یک کلاس استاندارد از \lr{FastAPI} است که برای مدیریت فایل‌های آپلودی استفاده می‌شود.
+    \item تابع به صورت ناهمگام (\lr{async}) تعریف شده است تا امکان استفاده از عملیات‌های غیرهمزمان (مانند \lr{await save\_temp\_file(file)}) فراهم گردد.
+\end{itemize}
+
+\paragraph{۲. آماده‌سازی متغیرها}
+\begin{itemize}
+    \item \lr{temp\_paths}: مسیر فایل‌های موقتی که برای پاکسازی نهایی روی دیسک ذخیره شده‌اند.
+    \item \lr{embeddings}: لیستی از بردارهای embedding استخراج‌شده از متن، تصویر یا صوت.
+    \item \lr{response\_data}: دیکشنری خروجی که در نهایت به فرانت بازگردانده می‌شود.
+\end{itemize}
+
+\paragraph{۳. تشخیص وجود متن و پردازش آن}
+اگر درخواست ورودی حاوی متن باشد، بخش زیر اجرا می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+has_text = bool(query and query.strip())
+ 
+if has_text:
+    english_query = normalize_text_to_english(query)
+    text_emb = embed_text(english_query)
+    embeddings.append(text_emb)
+    response_data["original_query"] = query
+    response_data["processed_query"] = english_query
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item از تابع \lr{normalize\_text\_to\_english} برای ترجمه‌ی متن استفاده می‌شود. در نتیجه اگر متن ورودی به زبانی غیر انگلیسی باشد، ابتدا به انگلیسی ترجمه می‌گردد.
+    \item سپس برای متن انگلیسی‌شده، با استفاده از متد \lr{embed\_text} یک بردار جاسازی (\lr{embedding}) به دست می‌آید.
+    \item \lr{embedding} متن به لیست \lr{embeddings} اضافه می‌شود و اطلاعات اصلی و پردازش‌شده در \lr{response\_data} ذخیره می‌گردد.
+\end{itemize}
+
+\textbf{۴. پردازش فایل‌های آپلودی (ذخیره موقت و استخراج \lr{embedding})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+for file in files:
+    temp_path = await _save_temp_file(file)
+    temp_paths.append(temp_path)
+
+    if file.content_type.startswith("image/"):
+        img_emb = embed_image(temp_path)
+        embeddings.append(img_emb)
+        try:
+            img_obj = Image.open(temp_path).copy()
+        except Exception as e:
+            img_obj = None
+        image_files.append(img_obj)
+
+    elif file.content_type.startswith("audio/"):
+        audio_emb, audio_meta = _process_audio(temp_path)
+        embeddings.append(audio_emb)
+        audio_transcriptions.append(audio_meta)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item هر فایل ابتدا با \lr{save\_temp\_file} به صورت موقت ذخیره شده و مسیر آن برای پاکسازی نهایی نگهداری می‌شود.
+    \item **برای تصاویر:** تابع \lr{embed\_image} بردار تصویر را ساخته و به لیست اضافه می‌کند. همچنین، تصویر با کتابخانه‌ی \lr{PIL} باز شده و در \lr{image\_files} نگهداری می‌شود تا برای ارسال به \lr{LLM} یا پیش‌نمایش در دسترس باشد.
+    \item **برای صدا:** ابتدا با استفاده از تابع \lr{process\_audio}، بردار جاسازی و اطلاعات فراداده‌ای (\lr{metadata}) استخراج و به لیست‌های مربوطه اضافه می‌شوند. این فراداده حاوی نام فایل، متن فایل به زبان اصلی، متن فایل به زبان انگلیسی و زبان شناسایی‌شده‌ی فایل است که در ادامه توضیح داده خواهد شد.
+\end{itemize}
+
+\textbf{۵. به دست آوردن متن فایل‌های صوتی}
+\begin{itemize}
+    \item اگر تنها یک فایل صوتی وجود داشته و هیچ متن ورودی‌ای توسط کاربر ارائه نشده باشد، مستقیماً نتیجه‌ی transcript  (\lr{transcription}) در \lr{response\_data} قرار می‌گیرد.
+    \item در غیر این صورت، تمامی transcription ها در قالب یک لیست بازگردانده می‌شوند.
+\end{itemize}
+
+\textbf{۶. تعیین بردار نهایی جستجو (\lr{single vs multimodal mean})}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+if not embeddings:
+    return JSONResponse({"error": "No valid text or media found to process."}, status_code=400)
+ 
+if len(embeddings) == 1:
+    q_emb = embeddings[0]
+    response_data["search_mode"] = "single"
+else:
+    q_emb_array = np.array(embeddings)
+    mean_emb = np.mean(q_emb_array, axis=0)
+    q_emb = mean_emb
+    response_data["search_mode"] = f"multimodal_mean ({len(embeddings)} inputs)"
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item اگر هیچ بردار جاسازی (\lr{embedding}) تولید نشده باشد، خطای \lr{400} بازگردانده می‌شود.
+    \item اگر تنها یک بردار وجود داشته باشد، همان به عنوان بردار جستجوی نهایی (\lr{q\_emb}) تعیین می‌شود (\lr{single mode}).
+    \item اگر چندین بردار وجود داشته باشد، میانگین این بردارها گرفته می‌شود تا یک بردار واحد چندمودال ایجاد گردد.
+    \item **نکته:** این رویکرد (میانگین‌گیری) ساده‌ترین روش ترکیب مودال‌ها است. مشکل آن این است که اگر ورودی‌ها دارای مفاهیم دور از هم باشند، بردار میانگین ممکن است دقت بازیابی مناسبی نداشته باشد. این بردار نهایی (\lr{q\_emb}) برای جستجو در پایگاه داده استفاده خواهد شد.
+\end{itemize}
+
+
+\textbf{۷. اجرای جستجو در پایگاه داده برداری}
+با استفاده از بردار نهایی \lr{q\_emb}، جستجو برای هر مودال به صورت جداگانه اجرا می‌شود:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+text_res = search_by_embedding(q_emb, "text", top_k=5)
+image_res = search_by_embedding(q_emb, "image", top_k=5)
+audio_res = search_by_embedding(q_emb, "audio", top_k=5)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item تابع \lr{search\_by\_embedding} فراخوانی می‌شود. این تابع بردار نهایی را دریافت کرده و بر اساس مدالیته مشخص‌شده (\lr{text}, \lr{image}, \lr{audio})، تعداد \lr{5} داده‌ی مشابه را از پایگاه داده بازیابی می‌کند.
+    \item این فرآیند تضمین می‌کند که از هر نوع مدالیته، ۵ داده‌ی نزدیک به ورودی کاربر بازیابی گردد.
+\end{itemize}
+
+\textbf{۸. نرمال‌سازی نتایج و آماده‌سازی برای \lr{LLM}}
+سپس با استفاده از تابع \lr{normalize\_results}، نتایج به فرمت یکپارچه برای ارسال به \lr{LLM} و فرانت تبدیل و در \lr{response\_data} ذخیره می‌شوند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+normalized_texts = _normalize_results(text_res)
+normalized_images = _normalize_results(image_res)
+normalized_audios = _normalize_results(audio_res)
+ 
+response_data.update({
+    "text_results": normalized_texts,
+    "image_results": normalized_images,
+    "audio_results": normalized_audios,
+})
+\end{lstlisting}
+\end{latin}
+
+\textbf{\textbf{۹. فیلتر کردن و آماده‌سازی داده‌های نهایی برای \lr{LLM}}}
+
+در این مرحله، ما دارای موارد زیر هستیم:
+\begin{enumerate}
+    \item \textbf{تمام کوئری‌های کاربر} (متن، تصویر، صوت): کوئری متن در متغیر \lr{query}، کوئری‌های تصویر در لیست \lr{image\_files} و متن تبدیل‌شده‌ی صوت در لیست \lr{audio\_transcriptions} ذخیره شده‌اند.
+    \item \textbf{یک لیست ۵ تایی از متون بازیابی‌شده} (\lr{normalized\_texts}) که از دیتابیس بازیابی و نرمال شده‌اند.
+    \item \textbf{یک لیست ۵ تایی از تصاویر بازیابی‌شده} (\lr{normalized\_images}) که از دیتابیس بازیابی و نرمال شده‌اند.
+    \item \textbf{یک لیست ۵ تایی از متون مربوط به صوت‌های بازیابی‌شده} (\lr{normalized\_audios}) که از دیتابیس بازیابی و نرمال شده‌اند.
+\end{enumerate}
+
+برای جلوگیری از ارسال حجم زیاد داده به \lr{LLM} و مدیریت توکن‌ها، تنها زیرمجموعه‌ای از داده‌ها (کوئری‌های کاربر و فقط یک مورد از هر نوع داده بازیابی شده) در دیکشنری \lr{llm\_data} ذخیره و به \lr{LLM} ارسال می‌شوند.
+
+داده‌هایی که در دیکشنری \lr{llm\_data} ذخیره شده و به \lr{LLM} فرستاده می‌شوند عبارت‌اند از:
+\begin{itemize}
+    \item تمام داده‌های کاربر.
+    \item یک مورد از متون بازیابی‌شده (\lr{normalized\_texts[0]}).
+    \item یک مورد از تصاویر بازیابی‌شده (\lr{normalized\_images[0]}).
+    \item یک مورد از متون صوتی بازیابی‌شده (\lr{normalized\_audios[0]}).
+\end{itemize}
+
+همچنین، یک نسخه دیگر از این داده‌ها به نام \lr{llm\_data\_modified\_for\_front} ساخته می‌شود که همان محتویات داده‌های بازیابی‌شده را دارد اما **بدون کوئری‌های کاربر**، که صرفاً برای راحتی کار در فرانت (\lr{Frontend}) ایجاد شده است.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+llm_data = {
+    "user_text_query": query if has_text else None,
+    "user_image_queries": image_files if image_files else None,
+    "user_audio_queries": (
+        [a.get("processed_text") for a in audio_transcriptions]
+        if audio_transcriptions
+        else None
+    ),
+    "retrieved_texts": (
+        [t.get("content") for t in normalized_texts[:1]]
+        if normalized_texts
+        else None
+    ),
+    "retrieved_images": (
+        [
+            (
+                Image.open(PROJECT_ROOT_PATH + i.get("filePath"))
+                if i.get("filePath")
+                else (
+                    Image.open(requests.get(i.get("url"), stream=True).raw)
+                    if i.get("url")
+                    else None
+                )
+            )
+            for i in normalized_images[:1]
+        ]
+        if normalized_images
+        else None
+    ),
+    "retrieved_audios": (
+        [
+            a.get("content") or a.get("processed_text")
+            for a in normalized_audios[:1]
+        ]
+        if normalized_audios
+        else None
+    ),
+}
+
+llm_data_modified_for_front = {
+    "retrieved_texts": (
+        [t.get("content") for t in normalized_texts[:1]]
+        if normalized_texts
+        else None
+    ),
+    "retrieved_images": (
+        [i.get("filePath") or i.get("url") for i in normalized_images[:1]]
+        if normalized_images
+        else None
+    ),
+    "retrieved_audios": (
+        [a.get("filePath") for a in normalized_audios[:1]]
+        if normalized_audios
+        else None
+    ),
+}
+\end{lstlisting}
+\end{latin}
+
+
+
+\textbf{۱۰. ارسال داده به \lr{LLM} و بازگرداندن پاسخ}
+دیکشنری \lr{llm\_data} به تابع \lr{feed\_data\_into\_llm} ارسال می‌شود. خروجی این تابع که پاسخ متنی \lr{LLM} است، در \lr{response\_data["llm\_response"]} برای نمایش در فرانت ذخیره می‌شود.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+response_data["llm_response"] = feed_data_into_llm(llm_data)
+\end{lstlisting}
+\end{latin}
+
+\subsubsection{توابع کمکی (\lr{Utility Functions}) در \lr{utils.py}}
+
+در فرآیند بالا، از توابع کمکی متعددی استفاده شده است که در ادامه توضیح داده می‌شوند:
+
+\textbf{۱. تابع \lr{normalize\_text\_to\_english}}
+هدف: نرمال‌سازی متن ورودی به زبان انگلیسی از طریق ترجمه.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def normalize_text_to_english(text: str) -> str:
+  """
+  Convert any input text into English if it is not already English.
+  Works offline for language detection + uses Google Translate API.
+  """
+  if not text or text.strip() == "":
+    return text
+ 
+  try:
+    translated = GoogleTranslator(source='auto', target='en').translate(text)
+    return translated
+  except Exception as e:
+    print(f"Translation error: {e}")
+    return text
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item این تابع از \lr{GoogleTranslator} (از پکیج \lr{deep-translator}) استفاده می‌کند.
+    \item \lr{source='auto'} زبان ورودی را به صورت خودکار تشخیص می‌دهد.
+    \item \lr{target='en'} تضمین می‌کند که خروجی همیشه به زبان انگلیسی باشد.
+\end{itemize}
+
+\textbf{۲. تابع \lr{embed\_text}}
+هدف: تبدیل یک رشته متنی به یک بردار عددی (\lr{embedding}) با استفاده از مدل \lr{CLIP}.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def _to_numpy(t: torch.Tensor) -> np.ndarray:
+  return t.detach().cpu().numpy().reshape(-1)
+ 
+def embed_text(text: str) -> np.ndarray:
+  tokens = tokenizer([text]).to(DEVICE)
+  with torch.no_grad():
+    text_features = clip_model.encode_text(tokens)
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+  return _to_numpy(text_features)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{tokens = tokenizer([text]).to(DEVICE)}: متن را به \lr{tokens} تبدیل کرده و به دستگاه مناسب (\lr{CPU/GPU}) منتقل می‌کند.
+    \item \lr{with torch.no\_grad()}: برای صرفه‌جویی در منابع و سرعت، محاسبه‌ی گرادیان‌ها غیرفعال می‌شود.
+    \item \lr{text\_features = clip\_model.encode\_text(tokens)}: ویژگی‌های متنی توسط مدل \lr{CLIP} استخراج می‌شوند.
+    \item نرمال‌سازی بردارها: طول (\lr{norm}) هر بردار به \lr{1} نرمال می‌شود تا برای مقایسه‌ی شباهت کسینوسی (\lr{cosine similarity}) مناسب باشد.
+    \item \lr{return \_to\_numpy(text\_features)}: تنسور \lr{PyTorch} به آرایه‌ی \lr{NumPy} تبدیل می‌گردد.
+\end{itemize}
+
+\textbf{۳. تابع \lr{embed\_image}}
+هدف: تبدیل یک تصویر به یک بردار عددی (\lr{embedding}) با استفاده از مدل \lr{CLIP}.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def embed_image(image_path: str) -> np.ndarray:
+  img = Image.open(image_path).convert("RGB")
+  x = preprocess(img).unsqueeze(0).to(DEVICE)
+  with torch.no_grad():
+    image_features = clip_model.encode_image(x)
+    image_features /= image_features.norm(dim=-1, keepdim=True)
+  return _to_numpy(image_features)
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \lr{img = Image.open(image\_path).convert("RGB")}: تصویر با \lr{Pillow} باز و به فرمت \lr{RGB} تبدیل می‌شود.
+    \item \lr{x = preprocess(img).unsqueeze(0).to(DEVICE)}: تصویر توسط تابع \lr{preprocess} (دریافت شده از \lr{open\_clip}) پیش‌پردازش می‌شود و به دستگاه منتقل می‌گردد. \lr{.unsqueeze(0)} بعد \lr{batch} را اضافه می‌کند.
+    \item \lr{image\_features = clip\_model.encode\_image(x)}: ویژگی‌های تصویری توسط مدل \lr{CLIP} استخراج می‌شوند.
+    \item بردار ویژگی‌ها نرمال‌سازی شده و در نهایت به آرایه‌ی \lr{NumPy} تبدیل می‌شود.
+\end{itemize}
+
+\textbf{۴. تابع \lr{save\_temp\_file}}
+هدف: ذخیره‌ی فایل آپلودشده (\lr{UploadFile}) در یک مسیر موقت و بازگرداندن مسیر آن.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+async def save_temp_file(file: UploadFile) -> str:
+  """Saves UploadFile to a temp path and returns the path."""
+  # Ensure a file extension, default to .tmp if none
+  suffix = os.path.splitext(file.filename)[1] or ".tmp"
+  with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tf:
+    tf.write(await file.read())
+    return tf.name
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item تابع \lr{asynchronous} است و از \lr{await} برای خواندن محتوای فایل استفاده می‌کند.
+    \item با \lr{tempfile.NamedTemporaryFile(delete=False, ...)}، فایل موقت با پسوند مناسب ایجاد می‌شود و تضمین می‌گردد که پس از بسته شدن نیز (\lr{delete=False}) روی دیسک باقی بماند.
+\end{itemize}
+
+\textbf{۵. تابع \lr{process\_audio}}
+هدف: تبدیل صوت به متن، شناسایی زبان، ترجمه‌ی آن به انگلیسی (در صورت لزوم)، تولید \lr{embedding} و جمع‌آآوری فراداده.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def process_audio(temp_path: str) -> Tuple[List[float], dict]:
+  """
+  Transcribes audio, normalizes text, embeds it,
+  and returns (embedding, metadata_dict).
+  """
+  # 1. Whisper -> Text + Language Detection
+  whisper_res = whisper_model.transcribe(temp_path)
+  detected_text = whisper_res.get("text", "").strip()
+  detected_lang = whisper_res.get("language", "")
+ 
+  # 2. If Persian -> Translate to English
+  if detected_lang.startswith("fa"):
+    processed_text = normalize_text_to_english(detected_text)
+  else:
+    processed_text = detected_text
+ 
+  # 3. Embed transcribed text
+  q_emb = embed_text(processed_text)
+ 
+  metadata = {
+    "file_name": os.path.basename(temp_path),
+    "detected_text": detected_text,
+    "processed_text": processed_text,
+    "detected_language": detected_lang,
+  }
+ 
+  return q_emb, metadata
+\end{lstlisting}
+\end{latin}
+
+
+تعریف تابع و ورودی/خروجی
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def process_audio(temp_path: str) -> Tuple[List[float], dict]:
+\end{lstlisting}
+\end{latin}
+
+\begin{itemize}
+    \item \textbf{ورودی:} \lr{temp\_path: str} - مسیر فایل صوتی (مثل \lr{.wav} یا \lr{.mp3}) که قبلاً روی دیسک ذخیره شده است.
+    \item \textbf{خروجی:} یک تاپل (\lr{tuple}) شامل دو مقدار:
+    \begin{itemize}
+        \item \lr{q\_emb: List[float]} - بردار جاسازی (\lr{embedding}) متن آن فایل صوتی.
+        \item \lr{metadata: dict} - دیکشنری شامل اطلاعات اضافی درباره‌ی فایل و متن تشخیص‌داده‌شده.
+    \end{itemize}
+\end{itemize}
+
+\textbf{گام‌به‌گام اجرای تابع}
+
+\begin{enumerate}
+    \item \textbf{تبدیل صوت به متن با \lr{Whisper} و شناسایی زبان}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+whisper_res = whisper_model.transcribe(temp_path)
+detected_text = whisper_res.get("text", "").strip()
+detected_lang = whisper_res.get("language", "")
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item \lr{whisper\_model.transcribe(temp\_path)} فایل صوتی را به مدل \lr{Whisper} (\lr{OpenAI Speech Recognition}) ارسال می‌کند تا متن و زبان را استخراج کند.
+            \item \lr{detected\_text}: متن استخراج‌شده از صوت.
+            \item \lr{detected\_lang}: کد زبان شناسایی‌شده (مانند \lr{"en"} یا \lr{"fa"}).
+        \end{itemize}
+         نتیجه این بخش: صوت تبدیل به متن و شناسایی زبان انجام می‌شود.
+
+    \item \textbf{ترجمه به انگلیسی (در صورت فارسی بودن زبان)}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+if detected_lang.startswith("fa"):
+  processed_text = normalize_text_to_english(detected_text)
+else:
+  processed_text = detected_text
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item اگر زبان تشخیص‌داده‌شده با \lr{"fa"} شروع شود (فارسی)، تابع \lr{normalize\_text\_to\_english()} فراخوانی می‌شود تا متن به انگلیسی ترجمه گردد.
+            \item این کار متن نهایی را برای تولید \lr{embedding} سازگار با مدل چندمودال (\lr{CLIP}) آماده می‌کند.
+        \end{itemize}
+         نتیجه این بخش: متن نهایی (\lr{processed\_text}) به زبان انگلیسی آماده می‌شود.
+
+    \item \textbf{گرفتن \lr{embedding} از متن}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+q_emb = embed_text(processed_text)
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item تابع \lr{embed\_text()} (که قبلاً توضیح داده شد) متن پردازش‌شده را به یک بردار عددی (\lr{embedding}) تبدیل می‌کند که نشان‌دهنده معنای جمله است.
+        \end{itemize}
+        نتیجه این بخش: متن نهایی به فضای برداری (\lr{Vector Space}) نگاشته می‌شود.
+
+    \item \textbf{ساخت \lr{metadata}}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+metadata = {
+  "file_name": os.path.basename(temp_path),
+  "detected_text": detected_text,
+  "processed_text": processed_text,
+  "detected_language": detected_lang,
+}
+        \end{lstlisting}
+        \end{latin}
+        
+        \subparagraph{توضیحات فیلدهای \lr{metadata}}
+        دیکشنری متادیتا شامل اطلاعات زیر برای ثبت و استفاده‌ی بعدی است:
+        \begin{itemize}
+            \item \lr{"file\_name"}: نام فایل صوتی.
+            \item \lr{"detected\_text"}: متن خام تشخیص داده‌شده توسط مدل \lr{Whisper}.
+            \item \lr{"processed\_text"}: متن نهایی بعد از ترجمه به انگلیسی یا نرمال‌سازی (متنی که برای تولید \lr{embedding} استفاده شده است).
+            \item \lr{"detected\_language"}: کد زبان شناسایی‌شده.
+        \end{itemize}
+        
+        نتیجه این بخش: همه اطلاعات متنی و زبانی همراه با نام فایل در قالب \lr{metadata} جمع‌آوری می‌شوند.
+
+    \item \textbf{برگرداندن خروجی}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+return q_emb, metadata
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item خروجی شامل \lr{Embedding} (\lr{q\_emb}) برای جستجو در دیتابیس برداری و \lr{Metadata} (\lr{metadata}) برای اطلاعات جانبی است.
+        \end{itemize}
+\end{enumerate}
+
+
+\textbf{۶. توابع \lr{get\_embedding} و \lr{search\_by\_embedding}}
+هدف: تولید \lr{embedding} (نمایش برداری) برای کوئری ورودی و اجرای جستجوی تشابه برداری (\lr{Vector Similarity Search}) در پایگاه داده \lr{Weaviate}.
+
+این دو تابع در کنار یکدیگر کار می‌کنند تا یک کوئری ورودی (متن یا تصویر) را به بردار تبدیل کرده و نزدیک‌ترین موارد مشابه را از دیتابیس بازیابی کنند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def get_embedding(modality: str, data: str):
+  if modality == "text":
+    return embed_text(data)
+  elif modality == "image":
+    return embed_image(data)
+  raise ValueError("modality must be 'text' or 'image'")
+ 
+def search_by_embedding(query_embedding, modality: str, top_k=3):
+  try:
+    collection = weaviate_client.collections.get(WEAVIATE_COLLECTION_NAME)
+    results = collection.query.near_vector(
+      near_vector=query_embedding.tolist(),
+      limit=top_k,
+      filters=weaviate.classes.query.Filter.by_property("modality").equal(
+          modality
+      ),
+    )
+    found = []
+    if results.objects:
+      for obj in results.objects:
+          found.append({"properties": obj.properties})
+    return found
+  except Exception as e:
+    print(f"Error searching {modality}: {e}")
+    return []
+\end{lstlisting}
+\end{latin}
+
+\textbf{تابع \lr{get\_embedding(modality: str, data: str)}}
+\textbf{وظیفه:} بر اساس نوع داده (\lr{modality}: \lr{"text"} یا \lr{"image"}), \lr{embedding} مناسب را تولید و برمی‌گرداند.
+
+\begin{itemize}
+    \item \lr{if modality == "text": return embed\_text(data)}: اگر نوع داده متنی باشد، متن به یک بردار عددی تبدیل می‌شود.
+    \item \lr{elif modality == "image": return embed\_image(data)}: اگر نوع داده تصویری باشد،  فایل تصویر به یک \lr{embedding} عددی تبدیل می‌شود.
+    \item \lr{raise ValueError(...) ...}: در صورت نامعتبر بودن \lr{modality}، یک خطا پرتاب می‌شود.
+\end{itemize}
+\textbf{خروجی:} یک آرایه‌ی عددی (\lr{numpy array}) شامل \lr{embedding} کوئری ورودی.
+
+\textbf{تابع \lr{search\_by\_embedding(query\_embedding, modality: str, top\_k=3)}}
+\textbf{وظیفه:} جستجوی شباهت برداری با استفاده از \lr{embedding} کوئری در پایگاه داده \lr{Weaviate} و بازگرداندن نزدیک‌ترین نتایج.
+
+\begin{enumerate}
+    \item \textbf{اتصال به کالکشن (\lr{Collection}):}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+collection = weaviate_client.collections.get(WEAVIATE_COLLECTION_NAME)
+        \end{lstlisting}
+        \end{latin}
+        به کالکشن مورد نظر در \lr{Weaviate} که حاوی داده‌های چندمودال است، متصل می‌شود.
+
+    \item \textbf{اجرای جستجوی برداری:}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+results = collection.query.near_vector(
+    near_vector=query_embedding.tolist(),
+    limit=top_k,
+    filters=weaviate.classes.query.Filter.by_property("modality").equal(modality),
+)
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item \lr{collection.query.near\_vector}: متد اصلی برای جستجوی تشابه برداری.
+            \item \lr{limit=top\_k}: تعداد نتایج مورد نیاز را مشخص می‌کند (به طور پیش‌فرض ۳).
+            \item \lr{filters}: این فیلتر ضروری تضمین می‌کند که جستجو فقط در میان داده‌هایی انجام شود که نوع مدالیته‌ی آن‌ها با کوئری ورودی یکسان است (مثلاً \lr{embedding} یک متن، فقط در میان \lr{embedding} متون جستجو شود).
+        \end{itemize}
+
+    \item \textbf{استخراج نتایج:}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+found = []
+if results.objects:
+    for obj in results.objects:
+        found.append({"properties": obj.properties})
+return found
+        \end{lstlisting}
+        \end{latin}
+        \begin{itemize}
+            \item داده‌ها و فراداده‌های (\lr{metadata}) مرتبط با نزدیک‌ترین بردارها، از فیلد \lr{obj.properties} استخراج شده و در لیست \lr{found} ذخیره می‌شوند.
+        \end{itemize}
+
+    \item \textbf{مدیریت خطا:}
+        \begin{latin}
+        \begin{lstlisting}[language=Python]
+except Exception as e:
+  print(f"Error searching {modality}: {e}")
+  return []
+        \end{lstlisting}
+        \end{latin}
+        در صورت بروز خطا در حین جستجو در \lr{Weaviate}، پیام خطا چاپ شده و یک لیست خالی برگردانده می‌شود.
+\end{enumerate}
+
+
+\textbf{۷. تابع \lr{normalize\_results}}
+هدف: ساده‌سازی خروجی جستجوهای \lr{Weaviate} به یک لیست ساده از ویژگی‌ها (\lr{properties}).
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def normalize_results(results_list):
+  """Converts Weaviate result list to a simple list of properties."""
+  out = []
+  for r in results_list or []:
+    props = r.get("properties") if isinstance(r, dict) else None
+    if props:
+      out.append(props)
+  return out
+\end{lstlisting}
+\end{latin}
+این تابع برای تبدیل نتایج خام دیتابیس به فرمت یکنواخت برای استفاده‌ی آسان‌تر طراحی شده است.
+
+\subsection{فایل \lr{llm.py}}
+
+در نهایت، جهت تولید پاسخ توسط مدل زبان بزرگ (\lr{LLM})، از تابع \lr{feed\_data\_into\_llm} که در اسکریپت \lr{llm.py} تعریف شده، استفاده می‌گردد.
+
+\subsubsection{راه‌اندازی کلاینت \lr{OpenAI}}
+در ابتدای فایل \lr{llm.py}، کد زیر جهت برقراری ارتباط با مدل‌های زبان بزرگ، تعبیه شده است:
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+# === Initialize OpenAI Client ===
+client = OpenAI(
+    base_url=LLM_API_BASE,
+    api_key=LLM_API_KEY
+)
+\end{lstlisting}
+\end{latin}
+
+این قسمت از کد وظیفه راه‌اندازی (\lr{Initialization}) کلاینت \lr{OpenAI} را بر عهده دارد تا امکان استفاده از مدل‌های زبانی (\lr{LLM}ها) مانند \lr{GPT} فراهم گردد. متغیر \lr{client} به عنوان رابط اصلی برای تعامل با \lr{LLM} عمل می‌کند.
+
+\begin{enumerate}
+    \item \lr{client = OpenAI(...)}: در این خط، یک شیء (\lr{object}) از کلاس \lr{OpenAI} ایجاد شده و در متغیر \lr{client} ذخیره می‌شود. این شیء در واقع کلاینتی است که از طریق آن می‌توان درخواست‌ها را به مدل‌های \lr{OpenAI} یا سرورهای سازگار با \lr{API} آن (مانند سرورهای محلی یا \lr{third-party LLM servers}) ارسال نمود.
+    \item پارامترهای کلیدی:
+    \begin{itemize}
+        \item \lr{base\_url=LLM\_API\_BASE}: این پارامتر آدرس \lr{URL} سروری که درخواست‌ها به آن ارسال می‌شود را مشخص می‌کند.
+        \begin{itemize}
+            \item در استفاده از \lr{API} رسمی \lr{OpenAI}: \lr{LLM\_API\_BASE = "https://api.openai.com/v1"}.
+            \item در صورت استفاده از مدل‌های محلی (\lr{local}) یا میزبانی‌شده توسط کاربر (\lr{self-hosted} مانند \lr{Ollama}، \lr{LM Studio}، یا \lr{vLLM}): \lr{LLM\_API\_BASE} می‌تواند آدرس \lr{API} محلی باشد، مثلاً: \lr{"http://localhost:8000/v1"}.
+        \end{itemize}
+        \item \lr{api\_key=LLM\_API\_KEY}: این کلید امنیتی جهت احراز هویت (\lr{authentication}) کاربر در سرور الزامی است. مقدار آن معمولاً یک رشته محرمانه مانند \lr{"sk-xxxx..."} است.
+    \end{itemize}
+    \item نتیجه: پس از اجرای این خطوط، متغیر \lr{client} به یک شیء فعال از نوع \lr{OpenAI} تبدیل می‌شود.
+\end{enumerate}
+
+لازم به ذکر است که مقادیر \lr{LLM\_API\_BASE} و \lr{LLM\_API\_KEY} از فایل تنظیمات \lr{config.py} بارگذاری می‌شوند.
+
+\subsubsection{تشریح تابع \lr{feed\_data\_into\_llm}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def feed_data_into_llm(llm_data: dict) -> str:
+    """Send multimodal data (text + image + audio) to OpenRouter model."""
+
+    def section(title: str, content: str) -> str:
+        return f"\n\n### {title}\n{content.strip()}"
+
+    sections = []
+
+    # --- User Text ---
+    if llm_data.get("user_text_query"):
+        sections.append(section("User Text Query", llm_data["user_text_query"]))
+
+    # --- User Images ---
+    image_base64s = []
+    if llm_data.get("user_image_queries"):
+        for img in llm_data["user_image_queries"]:
+            pil_img = to_pil_image(img)
+            if pil_img:
+                pil_img = pil_img.resize((128, 128), Image.LANCZOS)
+                image_base64s.append(image_to_base64_data_url(pil_img))
+        sections.append(section("User Image Queries",
+        f"{len(image_base64s)} image(s) attached." if image_base64s else
+        "<no usable images>"))
+
+    # --- User Audio ---
+    if llm_data.get("user_audio_queries"):
+        aud_list = "\n\n".join(
+            [f"Audio {i+1} (Transcription):\n{t}" for i, t in
+            enumerate(llm_data["user_audio_queries"])]
+        )
+        sections.append(section("User Audio Queries", aud_list))
+
+    # --- Retrieved Texts ---
+    if llm_data.get("retrieved_texts"):
+        txt_list = "\n\n".join(
+            [f"Retrieved Text {i+1}:\n{t}" for i, t in
+            enumerate(llm_data["retrieved_texts"])]
+        )
+        sections.append(section("Retrieved Texts", txt_list))
+
+    # --- Retrieved Images ---
+    retrieved_image_base64s = []
+    print("Retrieved images count:", len(llm_data.get("retrieved_images", [])))
+    if llm_data.get("retrieved_images"):
+        for img in llm_data["retrieved_images"]:
+            pil_img = to_pil_image(img)
+            if pil_img:
+                pil_img = pil_img.resize((128, 128), Image.LANCZOS)
+                retrieved_image_base64s.append(image_to_base64_data_url(pil_img))
+                print("Retrieved image converted successfully")
+
+        sections.append(section("Retrieved Images",
+        f"{len(retrieved_image_base64s)} image(s) attached." if
+        retrieved_image_base64s else "<no usable retrieved images>"))
+
+    # --- Retrieved Audios ---
+    if llm_data.get("retrieved_audios"):
+        raud_list = "\n\n".join(
+            [f"Retrieved Audio {i+1} (Transcription):\n{t}" for i, t in
+            enumerate(llm_data["retrieved_audios"])]
+        )
+        sections.append(section("Retrieved Audio Transcriptions", raud_list))
+
+    # --- Merge all context ---
+    full_context = "\n\n".join(sections).strip() or "No multimodal content provided."
+
+    # === Construct message content ===
+    content_list = [{"type": "text", "text": full_context}]
+
+    # Add images as base64 URLs
+    for img_url in image_base64s + retrieved_image_base64s:
+        content_list.append({
+            "type": "image_url",
+            "image_url": {"url": img_url}
+        })
+
+    # === Call the LLM ---
+    try:
+        completion = client.chat.completions.create(
+            model=LLM_MODEL_NAME, 	# e.g. "openai/gpt-5-image-mini"
+            extra_headers={
+                "HTTP-Referer": "http://localhost",
+                "X-Title": "Multimodal RAG Chatbot"
+            },
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a multimodal reasoning assistant.\n"
+                        "You receive user inputs and retrieved multimodal data (text, image, audio).\n"
+                        "If the user asked a question, answer it using relevant data.\n"
+                        "If not, describe the multimodal inputs clearly in Markdown."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": content_list
+                }
+            ]
+        )
+
+        response_text = completion.choices[0].message.content
+    except Exception as e:
+        response_text = f"LLM call failed: {e}"
+
+    # === Logging ===
+    log_dir = os.path.join(PROJECT_ROOT_PATH, "log")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "llm_full_context.txt")
+    try:
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write("=== FULL CONTEXT SENT TO LLM ===\n\n")
+            f.write(full_context + "\n\n")
+            f.write("=" * 50 + "\n\n")
+            f.write("=== LLM RESPONSE ===\n\n")
+            f.write(response_text + "\n")
+        print(f"Full context written to {log_path}")
+    except Exception as e:
+        print(f"Failed to write LLM log: {e}")
+
+    return response_text
+\end{lstlisting}
+\end{latin}
+
+این تابع \lr{feed\_data\_into\_llm()} یکی از مؤلفه‌های اصلی در معماری یک سیستم \lr{Multimodal RAG Chatbot} محسوب می‌شود. وظیفه آن تجمیع، آماده‌سازی و ارسال تمامی داده‌های چندمودالی (شامل متن، تصویر، و صوت) به مدل زبان بزرگ (\lr{LLM}) و بازگرداندن پاسخ نهایی مدل است. 
+
+\paragraph{تعریف تابع}
+\lr{def feed\_data\_into\_llm(llm\_data: dict) -> str:}
+\begin{itemize}
+    \item ورودی: یک دیکشنری (\lr{dictionary}) به نام \lr{llm\_data} که حاوی داده‌های چندمودالی پروژه است (این دیکشنری در تابع \lr{search\_multimodal} تولید می‌شود).
+    \item خروجی: یک رشته (\lr{string}) که شامل پاسخ نهایی تولید شده توسط \lr{LLM} است.
+\end{itemize}
+
+\paragraph{تابع کمکی داخلی: \lr{section()}}
+\lr{def section(title: str, content: str) -> str:}
+\begin{itemize}
+    \item این تابع به منظور قالب‌بندی محتوا در فرمت \lr{Markdown} طراحی شده است.
+    \item از آن برای تفکیک و ارائه منظم ورودی‌ها به \lr{LLM} با استفاده از عنوان و محتوا استفاده می‌شود.
+\end{itemize}
+
+\paragraph{تشریح مراحل آماده‌سازی داده}
+\begin{enumerate}
+    \item \textbf{ورودی متنی کاربر} (\lr{user\_text\_query}):
+    در صورتی که ورودی متنی از سوی کاربر دریافت شده باشد، این متن به عنوان یک مؤلفه مجزا در لیست \lr{sections} ثبت می‌گردد.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if llm_data.get("user_text_query"):
+    sections.append(section("User Text Query", llm_data["user_text_query"]))
+    \end{lstlisting}
+    \end{latin}
+    
+    \item \textbf{تصاویر کاربر} (\lr{user\_image\_queries}):
+    \begin{itemize}
+        \item تصاویر ورودی به تابع \lr{to\_pil\_image()} ارسال و به فرمت \lr{PIL} تبدیل می‌گردند.
+        تصاویر ورودی کاربر از طریق تابع \lr{to\_pil\_image()} به فرمت استاندارد \lr{PIL} (\lr{Python Imaging Library}) تبدیل می‌شوند.
+        
+        \item جهت کاهش حجم ورودی، تصاویر به ابعاد \lr{128$\times$128} تغییر اندازه داده می‌شوند.
+        برای بهینه‌سازی بار پردازشی و کاهش تأخیر، ابعاد تصاویر ورودی به صورت یکنواخت به \lr{128$\times$128} پیکسل (با استفاده از متد \lr{Image.LANCZOS}) تغییر اندازه می‌یابد.
+        
+        \item تصاویر با استفاده از \lr{image\_to\_base64\_data\_url()} به رشته‌ی \lr{Base64} تبدیل می‌شوند تا قابلیت ارسال در بدنه \lr{JSON} به مدل را داشته باشند.
+        سپس، تصاویر به کد \lr{Base64} تبدیل می‌شوند تا بتوان آن‌ها را در قالب \lr{JSON} و مطابق با الزامات \lr{API} مدل به \lr{LLM} ارسال نمود.
+    \end{itemize}
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+image_base64s = []
+if llm_data.get("user_image_queries"):
+    for img in llm_data["user_image_queries"]:
+        pil_img = to_pil_image(img)
+        if pil_img:
+            pil_img = pil_img.resize((128, 128), Image.LANCZOS)
+            image_base64s.append(image_to_base64_data_url(pil_img))
+    sections.append(section("User Image Queries", f"{len(image_base64s)} image(s) attached." if image_base64s else "<no usable images>"))
+    \end{lstlisting}
+    \end{latin}
+
+    \item \textbf{صوت کاربر} (\lr{user\_audio\_queries}):
+    در صورت وجود ورودی صوتی، فرض بر این است که داده‌های صوتی قبلاً به متن (\lr{Transcription}) تبدیل شده‌اند و ترنسکریپت‌های حاصله در قالب \lr{Markdown} به منظور ورود به \lr{LLM} آماده‌سازی می‌گردند.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if llm_data.get("user_audio_queries"):
+    aud_list = "\n\n".join(
+        [f"Audio {i+1} (Transcription):\n{t}" for i, t in enumerate(llm_data["user_audio_queries"])]
+    )
+    sections.append(section("User Audio Queries", aud_list))
+    \end{lstlisting}
+    \end{latin}
+    
+    \item \textbf{متون بازیابی‌شده (\lr{RAG})} (\lr{retrieved\_texts}):
+    متون مرتبطی که از طریق سیستم بازیابی اطلاعات (\lr{Retrieval}) (مانند \lr{Weaviate}) از پایگاه داده به دست آمده‌اند، به عنوان زمینه (\lr{context}) جهت افزایش دقت و مرتبط بودن پاسخ \lr{LLM}، به لیست بخش‌ها افزوده می‌گردند. این متون در واقع \lr{context retrieval} محسوب می‌شوند.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if llm_data.get("retrieved_texts"):
+    txt_list = "\n\n".join(
+        [f"Retrieved Text {i+1}:\n{t}" for i, t in enumerate(llm_data["retrieved_texts"])]
+    )
+    sections.append(section("Retrieved Texts", txt_list))
+    \end{lstlisting}
+    \end{latin}
+
+    \item \textbf{تصاویر بازیابی‌شده} (\lr{retrieved\_images}):
+    تصاویر مرتبط بازیابی‌شده از پایگاه داده، مشابه تصاویر کاربر، پس از تغییر اندازه و تبدیل به \lr{Base64}، به ورودی نهایی مدل اضافه می‌شوند.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+retrieved_image_base64s = []
+for img in llm_data.get("retrieved_images", []):
+    pil_img = to_pil_image(img)
+    if pil_img:
+        pil_img = pil_img.resize((128, 128), Image.LANCZOS)
+        retrieved_image_base64s.append(image_to_base64_data_url(pil_img))
+sections.append(section("Retrieved Images", f"{len(retrieved_image_base64s)} image(s) attached." if retrieved_image_base64s else "<no usable retrieved images>"))
+    \end{lstlisting}
+    \end{latin}
+
+    \item \textbf{صوت‌های بازیابی‌شده} (\lr{retrieved\_audios}):
+    ترنسکریپت‌های صوتی بازیابی‌شده به متن نهایی افزوده می‌شوند تا \lr{LLM} بتواند از اطلاعات شنیداری مرتبط با جستجو نیز استفاده نماید.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+if llm_data.get("retrieved_audios"):
+    raud_list = "\n\n".join(
+        [f"Retrieved Audio {i+1} (Transcription):\n{t}" for i, t in enumerate(llm_data["retrieved_audios"])]
+    )
+    sections.append(section("Retrieved Audio Transcriptions", raud_list))
+    \end{lstlisting}
+    \end{latin}
+\end{enumerate}
+
+\paragraph{ترکیب داده‌ها و فراخوانی \lr{LLM}}
+\begin{itemize}
+    \item \textbf{ترکیب زمینه}: تمامی بخش‌های آماده‌سازی شده از ورودی‌های کاربر و داده‌های بازیابی‌شده به یک رشته واحد (\lr{full\_context}) تلفیق می‌گردند تا به عنوان ورودی متنی جامع به مدل ارسال شوند.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+full_context = "\n\n".join(sections).strip() or "No multimodal content provided."
+    \end{lstlisting}
+    \end{latin}
+    
+    \item \textbf{ساخت پیام}: لیست پیام‌های ارسالی به \lr{LLM} شامل \lr{full\_context} به عنوان متن و رشته‌های \lr{Base64} تصاویر (شامل تصاویر کاربر و تصاویر بازیابی‌شده) است.
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+content_list = [{"type": "text", "text": full_context}]
+for img_url in image_base64s + retrieved_image_base64s:
+    content_list.append({"type": "image_url", "image_url": {"url": img_url}})
+    \end{lstlisting}
+    \end{latin}
+    
+    \item \textbf{فراخوانی مدل}: درخواست به مدل زبانی از طریق تابع \lr{client.chat.completions.create} ارسال می‌شود و شامل دو پیام اصلی است: پیام \lr{system} (جهت تعریف نقش دستیار) و پیام \lr{user} (شامل \lr{content\_list} که حاوی داده‌های چندمودالی است).
+    
+    \begin{latin}
+    \begin{lstlisting}[language=Python]
+completion = client.chat.completions.create(
+    model=LLM_MODEL_NAME, 
+    extra_headers={
+        "HTTP-Referer": "http://localhost",
+        "X-Title": "Multimodal RAG Chatbot"
+    },
+    messages=[
+        {
+            "role": "system",
+            "content": (
+                "You are a multimodal reasoning assistant.\n"
+                "You receive user inputs and retrieved multimodal data (text, image, audio).\n"
+                "If the user asked a question, answer it using relevant data.\n"
+                "If not, describe the multimodal inputs clearly in Markdown."
+            )
+        },
+        {
+            "role": "user",
+            "content": content_list
+        }
+    ]
+)
+    \end{lstlisting}
+    \end{latin}
+    
+    \item \textbf{پاسخ}: مدل بر اساس داده‌های ورودی، پاسخ نهایی را تولید می‌کند: \lr{response\_text = completion.choices[0].message.content}.
+\end{itemize}
+
+\paragraph{مکانیسم ثبت لاگ (\lr{Logging})}
+کل ورودی (\lr{full\_context}) و خروجی (\lr{response\_text})، به منظور اشکال‌زدایی و مستندسازی جریان داده، در فایل \lr{llm\_full\_context.txt} واقع در پوشه \lr{log} ذخیره می‌گردند.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+log_path = os.path.join(PROJECT_ROOT_PATH, "log", "llm_full_context.txt")
+\end{lstlisting}
+\end{latin}
+
+\paragraph{نتیجه نهایی}
+تابع، پاسخ نهایی تولیدشده توسط \lr{LLM} (\lr{response\_text}) را بازمی‌گرداند تا جهت نمایش در واسط کاربری (\lr{UI}) یا محیط چت‌بات (\lr{Chatbot}) مورد استفاده قرار گیرد.
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+return response_text
+\end{lstlisting}
+\end{latin}
+
+
+\subsubsection{توابع کمکی}
+در تابع \lr{feed\_data\_into\_llm} از توابع زیر استفاده شده است:
+
+\textbf{تابع \lr{to\_pil\_image}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def to_pil_image(img_candidate):
+    """Convert input to a PIL.Image (RGB)."""
+    if img_candidate is None:
+        return None
+    if isinstance(img_candidate, Image.Image):
+        return img_candidate.convert("RGB")
+    if isinstance(img_candidate, (bytes, bytearray)):
+        try:
+            return Image.open(io.BytesIO(img_candidate)).convert("RGB")
+        except Exception:
+            return None
+    if isinstance(img_candidate, str):
+        if os.path.exists(img_candidate):
+            try:
+                return Image.open(img_candidate).convert("RGB")
+            except Exception:
+                return None
+        if img_candidate.startswith("http://") or img_candidate.startswith("https://"):
+            try:
+                resp = requests.get(img_candidate, timeout=5)
+                if resp.status_code == 200:
+                    return Image.open(io.BytesIO(resp.content)).convert("RGB")
+            except Exception:
+                return None
+        return None
+    if isinstance(img_candidate, dict):
+        b = img_candidate.get("bytes") or img_candidate.get("content") or img_candidate.get("data")
+        if isinstance(b, (bytes, bytearray)):
+            try:
+                return Image.open(io.BytesIO(b)).convert("RGB")
+            except Exception:
+                return None
+        path = img_candidate.get("path") or img_candidate.get("file")
+        if isinstance(path, str) and os.path.exists(path):
+            try:
+                return Image.open(path).convert("RGB")
+            except Exception:
+                return None
+        return None
+    return None
+\end{lstlisting}
+\end{latin}
+
+تابع \lr{to\_pil\_image(img\_candidate)} یک \textbf{تبدیل‌کننده‌ی همه‌منظوره} است که تلاش می‌کند هر ورودی تصویری ممکن (شامل فایل‌ها، بایت‌ها، \lr{URL}ها، و داده‌های ساختاریافته) را به یک شیء تصویر از نوع \lr{PIL.Image} (در حالت رنگی \lr{RGB}) تبدیل نماید.
+\paragraph{خلاصه عملکرد \lr{to\_pil\_image} مرحله‌به‌مرحله}
+\begin{center}
+\renewcommand{\arraystretch}{1.4} % افزایش فاصله بین سطرها برای خوانایی بهتر
+\begin{tabular}{|p{4cm}|p{10cm}|}
+\hline
+\rowcolor[HTML]{E6E6E6}
+\textbf{حالت ورودی} & \textbf{عملکرد تابع} \\
+\hline
+\lr{None} & مقدار \lr{None} بازگردانده می‌شود. \\
+\hline
+نوع \lr{PIL.Image} & تصویر ورودی به حالت رنگی \lr{"RGB"} تبدیل شده و بازگردانده می‌شود. \\
+\hline
+نوع \lr{bytes} یا \lr{bytearray} & تلاش می‌شود تصویر از داده‌ی باینری بارگذاری شود (\lr{Image.open(io.BytesIO(...))}). \\
+\hline
+نوع \lr{str} (رشته) &
+
+\begin{itemize}
+    \item اگر مسیر فایل (\lr{path}) باشد : تصویر از فایل محلی بارگذاری می‌شود.
+    \item اگر \lr{URL} باشد : تصویر از طریق شبکه دانلود و باز می‌شود.
+\end{itemize}
+ \\
+\hline
+نوع \lr{dict} & داده‌های تصویر از کلیدهای \lr{"bytes"}, \lr{"data"}, \lr{"content"}، یا \lr{"path"} استخراج و شیء تصویر ساخته می‌شود. \\
+\hline
+سایر انواع & مقدار \lr{None} بازگردانده می‌شود. \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{نتیجه:} این تابع به عنوان یک رابط استانداردساز عمل می‌کند تا تمامی فرمت‌های ورودی تصویر برای پردازش‌های بعدی در سیستم، یکپارچه‌سازی شوند.
+
+\textbf{تابع \lr{image\_to\_base64\_data\_url}}
+
+\begin{latin}
+\begin{lstlisting}[language=Python]
+def image_to_base64_data_url(pil_img):
+    """Convert PIL.Image to base64 data URL (JPEG)."""
+    buffer = io.BytesIO()
+    pil_img.save(buffer, format="JPEG")
+    img_str = base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return f"data:image/jpeg;base64,{img_str}"
+\end{lstlisting}
+\end{latin}
+
+این تابع تصویر ورودی (\lr{PIL.Image}) را به یک رشته‌ی \lr{Base64 Data URL} (\lr{data:image/jpeg;base64,...}) تبدیل می‌کند که استاندارد الزامی برای ارسال داده‌های تصویری به مدل‌های چندمودالی از طریق \lr{API} است.
+
+\paragraph{تشریح مفهوم \lr{Base64}}
+\lr{Base64} یک روش کدگذاری است که داده‌های باینری (نظیر تصاویر) را به رشته‌های متنی \lr{ASCII} تبدیل می‌کند. این فرآیند حیاتی است زیرا مدل‌های زبان بزرگ (\lr{LLM}ها) و اکثر \lr{API}ها، داده‌ها را به طور عمده با فرمت متنی (\lr{string}) پردازش و منتقل می‌نمایند. 
+
+\paragraph{لزوم تبدیل به \lr{Base64}}
+\begin{itemize}
+    \item \textbf{انتقال امن}: \lr{LLM} یا \lr{API} توانایی پردازش مستقیم فایل‌های باینری (مانند \lr{.jpg} یا \lr{.png}) را در ساختار پیام‌های \lr{JSON} ندارند.
+    \item \textbf{استانداردسازی}: با تبدیل به \lr{Base64}، تصویر به صورت یک رشته‌ی متنی ایمن و قابل انتقال در پروتکل‌های تحت وب در می‌آید.
+    \item \textbf{قابلیت بازیابی}: در سمت مقصد (مدل یا سرور)، داده‌های \lr{Base64} دوباره به محتوای باینری تصویر تبدیل و جهت پردازش استفاده می‌شوند.
+\end{itemize}
+
+
+
+\end{document}
